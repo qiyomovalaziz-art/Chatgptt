@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # API kalitlar
-TELEGRAM_TOKEN = ("8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # Railway dan olasiz
 
