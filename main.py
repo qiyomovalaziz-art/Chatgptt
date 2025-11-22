@@ -3,8 +3,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from datetime import datetime
 
 # BOT TOKENINI SHU YERGA YOZING
-TOKEN = "
-8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo"
+TOKEN = "8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo"
 
 def start(update, context):
     keyboard = [
