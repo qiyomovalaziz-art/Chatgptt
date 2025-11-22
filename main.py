@@ -1,86 +1,78 @@
-# file: tg_chatgpt_bot.py
 import os
 import logging
-import asyncio
+from flask import Flask, request
 
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
-# OpenAI -- rasmiy mijozdan foydalanamiz
-# agar openai kutubxonasining yangi interfeysi boshqacha bo'lsa, docsga qarang:
-# https://platform.openai.com/docs/quickstart  va API reference. 
 from openai import OpenAI
 
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+# API kalitlar
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # Railway dan olasiz
 
-if not OPENAI_API_KEY or not TELEGRAM_TOKEN:
-    raise RuntimeError("Iltimos, OPENAI_API_KEY va TELEGRAM_TOKEN environment o'zgaruvchilarini belgilang.")
-
-# OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# Oddiy start komandasi
+app = Flask(__name__)
+
+telegram_app = Application.builder().token(TELEGRAM_TOKEN).build()
+
+
+# --- Telegram funksiyalar ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Salom! Men ChatGPT-ussuli botman. Menga savol yozing va men OpenAI orqali javob beraman."
-    )
+    await update.message.reply_text("Salom! Men ChatGPT botman. Menga savol yozing!")
 
-# Help komandasi
-async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Faqat xabar yozing — men OpenAI yordamida javob beraman.")
 
-# Asosiy xabarni qabul qilib, OpenAI ga so'rov jo'natadi
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     chat_id = update.message.chat_id
 
-    # qisqa "typing" holatini ko'rsatish
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
 
     try:
-        # OpenAI Chat Completion chaqirig'i (oddiy misol)
-        # Docs: platform.openai.com/docs/api-reference/chat
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",  # yerni o'zgartirishingiz mumkin (docsga qarang)
+            model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "Siz yordamchi botsiz. Javoblar qisqa va foydali bo'lsin."},
+                {"role": "system", "content": "Siz foydali yordamchi botsiz."},
                 {"role": "user", "content": user_text},
             ],
-            max_tokens=800,
-            temperature=0.7,
+            max_tokens=500
         )
 
-        # Javob matnini olish
-        # struktura: resp.choices[0].message.content  (API versiyasiga qarab farq bo'lishi mumkin)
-        answer = ""
-        if resp and getattr(resp, "choices", None):
-            answer = resp.choices[0].message["content"].strip()
-        else:
-            answer = "Kechirasiz, hozir javob olishda muammo bo'ldi."
-
-        # Telegramga javob yuborish
+        answer = resp.choices[0].message["content"]
         await update.message.reply_text(answer)
 
     except Exception as e:
-        logger.exception("OpenAI so'rovida xato:")
-        await update.message.reply_text("Xatolik yuz berdi: " + str(e))
+        await update.message.reply_text("Xatolik: " + str(e))
 
 
-def main():
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+# Handlerlar
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_msg))
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_cmd))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    logger.info("Bot ishga tushmoqda...")
-    app.run_polling(allowed_updates=["message"])
+# --- Flask webhook ---
+@app.post("/")
+def webhook():
+    data = request.get_json(force=True)
+    update = Update.de_json(data, telegram_app.bot)
+    telegram_app.update_queue.put_nowait(update)
+    return "OK", 200
 
+
+# Railway ishga tushirish
 if __name__ == "__main__":
-    main()
+    # Webhook o‘rnatish
+    import asyncio
+
+    async def set_webhook():
+        await telegram_app.bot.set_webhook(url=WEBHOOK_URL)
+
+    asyncio.run(set_webhook())
+
+    # Flask serverni ishga tushirish
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
