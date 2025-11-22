@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Environment variables
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "").strip()
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo").strip()
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "").strip()
 
