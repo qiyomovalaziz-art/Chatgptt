@@ -16,7 +16,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_API_KEY = ("8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 
 if not OPENAI_API_KEY or not TELEGRAM_TOKEN:
