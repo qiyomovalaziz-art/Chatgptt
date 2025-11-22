@@ -18,21 +18,18 @@ def start(update, context):
 def button(update, context):
     query = update.callback_query
     query.answer()
-
     if query.data == "sana":
-        today = datetime.now().strftime("%Y-%m-%d")
-        query.edit_message_text(f"📅 Bugungi sana: {today}")
+        query.edit_message_text(f"📅 Bugungi sana: {datetime.now().strftime('%Y-%m-%d')}")
     elif query.data == "soat":
-        now = datetime.now().strftime("%H:%M:%S")
-        query.edit_message_text(f"⏰ Hozirgi vaqt: {now}")
+        query.edit_message_text(f"⏰ Hozirgi vaqt: {datetime.now().strftime('%H:%M:%S')}")
     elif query.data == "rasm":
         if os.path.exists("rasm.jpg"):
-            query.message.reply_photo(open("rasm.jpg", "rb"), caption="Mana rasm 🖼")
+            query.message.reply_photo(open("rasm.jpg", "rb"))
         else:
             query.message.reply_text("Rasm topilmadi!")
     elif query.data == "video":
         if os.path.exists("video.mp4"):
-            query.message.reply_video(open("video.mp4", "rb"), caption="Mana video 🎥")
+            query.message.reply_video(open("video.mp4", "rb"))
         else:
             query.message.reply_text("Video topilmadi!")
 
