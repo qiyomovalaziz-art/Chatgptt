@@ -211,6 +211,53 @@ COUNTRIES = [
     ("🇿🇼 Zimbabwe", "ZW"),
 ]
 
+# 🗳️ Prezidentlar (2025-yil noyabr holatiga ko'ra)
+# Format: "KOD": ("Ism Familiya", "YYYY-MM-DD")
+PRESIDENTS = {
+    "US": ("Joe Biden", "2021-01-20"),
+    "UZ": ("Shavkat Mirziyoyev", "2016-12-14"),
+    "RU": ("Vladimir Putin", "2012-05-07"),
+    "CN": ("Xi Jinping", "2013-03-15"),
+    "FR": ("Emmanuel Macron", "2017-05-14"),
+    "DE": ("Frank-Walter Steinmeier", "2017-03-19"),
+    "GB": ("Charles III", "2022-09-08"),  # Qirol — bosh rahbar
+    "IN": ("Droupadi Murmu", "2022-07-25"),
+    "BR": ("Luiz Inácio Lula da Silva", "2023-01-01"),
+    "JP": ("Fumio Kishida", "2021-10-04"),  # Bosh vazir — amaldagi rahbar
+    "CA": ("Julie Payette", "2017-10-02"),  # Gubernator — nominal rahbar (2025da yangilangan versiya kerak bo'lishi mumkin)
+    "AU": ("David Hurley", "2019-07-01"),
+    "TR": ("Recep Tayyip Erdoğan", "2014-08-28"),
+    "SA": ("Salman bin Abdulaziz", "2015-01-23"),
+    "AE": ("Mohamed bin Zayed Al Nahyan", "2022-05-14"),
+    "EG": ("Abdel Fattah el-Sisi", "2014-06-08"),
+    "ZA": ("Cyril Ramaphosa", "2018-02-15"),
+    "NG": ("Bola Tinubu", "2023-05-29"),
+    "KE": ("William Ruto", "2022-09-13"),
+    "IL": ("Isaac Herzog", "2021-07-07"),
+    "IR": ("Masoud Pezeshkian", "2024-07-30"),
+    "PK": ("Asif Ali Zardari", "2024-03-10"),
+    "ID": ("Joko Widodo", "2014-10-20"),
+    "KR": ("Yoon Suk-yeol", "2022-05-10"),
+    "IT": ("Sergio Mattarella", "2015-02-03"),
+    "ES": ("Pedro Sánchez", "2018-06-02"),  # Bosh vazir
+    "UA": ("Volodymyr Zelenskyy", "2019-05-20"),
+    "BY": ("Alexander Lukashenko", "1994-07-20"),
+    "KZ": ("Kassym-Jomart Tokayev", "2019-03-20"),
+    "MM": ("Min Aung Hlaing", "2021-08-01"),  # Harbiy hukmdor
+    "VN": ("To Lam", "2024-10-21"),
+    "TH": ("Srettha Thavisin", "2023-08-22"),  # Bosh vazir
+    "PH": ("Bongbong Marcos", "2022-06-30"),
+    "MY": ("Sultan Ibrahim Iskandar", "2024-01-31"),  # Qirol
+    "SG": ("Tharman Shanmugaratnam", "2023-09-14"),
+    "NZ": ("Cindy Kiro", "2021-10-21"),
+    "SE": ("Ulf Kristersson", "2022-10-18"),  # Bosh vazir
+    "NO": ("Jonas Gahr Støre", "2021-10-14"),  # Bosh vazir
+    "CH": ("Viola Amherd", "2024-01-01"),  # Prezident (davriy)
+    "PS": ("Mahmoud Abbas", "2005-01-15"),
+    "VA": ("Pope Francis", "2013-03-13"),
+    # Ko'proq davlatlarni qo'shish mumkin — hozircha eng mashhurlari
+}
+
 # Hafta kunlari (ingliz → o'zbek)
 WEEKDAYS_UZ = {
     "Monday": "Dushanba",
@@ -221,6 +268,20 @@ WEEKDAYS_UZ = {
     "Saturday": "Shanba",
     "Sunday": "Yakshanba",
 }
+
+# Sana formatlash uchun yordamchi funksiya
+def format_date_uz(date_str):
+    if not date_str:
+        return "Noma'lum"
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d")
+        months_uz = [
+            "", "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+            "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"
+        ]
+        return f"{d.day}-{months_uz[d.month]} {d.year} yil"
+    except:
+        return date_str
 
 # Logging
 logging.basicConfig(
@@ -254,9 +315,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     flag_name = country_info[0]  # "🇺🇿 Uzbekistan"
-    country_display = flag_name  # bayroq + nom
+    country_display = flag_name
 
-    # Hozirgi UTC vaqt (sekundlar bilan)
+    # Hozirgi UTC vaqt
     now = datetime.now(timezone.utc)
     time_str = now.strftime("%H:%M:%S")
     date_str = now.strftime("%Y-%m-%d")
@@ -277,13 +338,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         holiday_text = "⚠️ Bayram ma'lumotlari olishda xatolik"
 
+    # Prezident ma'lumotlari
+    prezident_info = PRESIDENTS.get(country_code, ("❌ Ma'lumot yo'q", None))
+    prezident_name, prezident_since = prezident_info
+    if prezident_since:
+        since_formatted = format_date_uz(prezident_since)
+        prez_text = f"👤 Prezident: {prezident_name}\n📅 Lavozimga kirgan: {since_formatted}"
+    else:
+        prez_text = f"👤 Bosh rahbar: {prezident_name}"
+
     # Xabar tayyorlash
     message = (
         f"{country_display}\n\n"
         f"🕗 Soat (UTC): {time_str}\n"
         f"📅 Sana: {date_str}\n"
         f"📆 Kun: {weekday_uz}\n"
-        f"{holiday_text}"
+        f"{holiday_text}\n\n"
+        f"{prez_text}"
     )
 
     await query.edit_message_text(message)
