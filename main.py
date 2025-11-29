@@ -1,17 +1,16 @@
 import logging
+import os
 from datetime import datetime, timezone
 import holidays
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.ext import Application, Command handler, CallbackQueryHandler, ContextTypes
 
-# ========================
-# 🔑 BOT TOKENINGIZNI SHU YERGA QO'YING
-# ========================
-BOT_TOKEN = "8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo"
+# 🔑 Bot tokenini muhit o'zgaruvchisidan olish (Railway daqt sozlanadi)
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN muhit o'zgaruvchisi set qilinmagan! Railway yoki .env faylida belgilang.")
 
-# ========================
-# 🌍 195+ DAVLAT (Barcha BMT a'zolari + Vatikan + Falastin)
-# ========================
+# 🌍 195+ DAVLAT
 COUNTRIES = [
     ("🇦🇫 Afghanistan", "AF"),
     ("🇦🇱 Albania", "AL"),
@@ -54,7 +53,7 @@ COUNTRIES = [
     ("🇨🇬 Congo", "CG"),
     ("🇨🇩 DR Congo", "CD"),
     ("🇨🇷 Costa Rica", "CR"),
-    ("🇨🇮 Côte d’Ivoire", "CI"),  # ✅ Ijro xatosi: Ijro xatosi: "Ivoir" emas, "Ivoire"
+    ("🇨🇮 Côte d’Ivoire", "CI"),
     ("🇭🇷 Croatia", "HR"),
     ("🇨🇺 Cuba", "CU"),
     ("🇨🇾 Cyprus", "CY"),
@@ -277,7 +276,10 @@ def format_date_uz(date_str):
     except Exception:
         return "Noma'lum"
 
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
 
 ITEMS_PER_PAGE = 10
 
@@ -328,24 +330,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         date_str = now.strftime("%Y-%m-%d")
         weekday_uz = WEEKDAYS_UZ.get(now.strftime("%A"), now.strftime("%A"))
 
-        # Bayramni xavfsiz aniqlash
+        # Bayram ma'lumotini xavfsiz olish
         holiday_text = "⚠️ Bayram ma'lumotlari mavjud emas"
         try:
-            # holidays kutubxonasida mavjud bo'lsa
             if country_code in holidays.list_supported_countries():
-                # Kosovo (XK) kabi kodlar uchun
                 if country_code == "XK":
-                    holiday_text = "⚠️ Kosovo uchun bayram ma'lumotlari mavjud emas"
+                    holiday_text = "⚠️ Kosovo uchun bayram ma'lumotlari yo'q"
                 else:
                     country_holidays = holidays.country_holidays(country_code)
                     today_holidays = country_holidays.get(now.date())
                     holiday_text = f"🎉 Bayram: {today_holidays}" if today_holidays else "❌ Bugun bayram yo'q"
-        except Exception as e:
+        except Exception:
             holiday_text = "⚠️ Bayram ma'lumotlarini olishda xatolik"
 
         # Prezident
-        prezident_info = PRESIDENTS.get(country_code, ("❌ Ma'lumot yo'q", None))
-        prez_name, prez_since = prezident_info
+        prez_name, prez_since = PRESIDENTS.get(country_code, ("❌ Ma'lumot yo'q", None))
         if prez_since:
             since_text = format_date_uz(prez_since)
             prez_text = f"👤 Bosh rahbar: {prez_name}\n📅 Lavozimga kirgan: {since_text}"
@@ -360,18 +359,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{holiday_text}\n\n"
             f"{prez_text}"
         )
-        await query.edit_message_text(message, parse_mode=None)
+        await query.edit_message_text(message)
 
 def main():
-    if BOT_TOKEN == "8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo":
-        # 👆 Agar siz hali token o'zgartirmagan bo'lsangiz, xabar berish
-        raise ValueError("❗ Iltimos, BOT_TOKEN o'zgaruvchisiga o'zingizning haqiqiy bot tokeningizni qo'ying!")
-
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    print("✅ Bot ishga tushdi! Telegramda /start yozing.")
+    logging.info("✅ Bot ishga tushdi! Railwayda ishlayapti.")
     app.run_polling()
 
 if __name__ == "__main__":
