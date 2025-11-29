@@ -5,10 +5,10 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 import pytz
 from datetime import datetime
 
-# 🔑 BOT TOKEN (Railway Secrets orqali beriladi)
+# 🔑 BOT TOKEN (Xavfsizlik uchun Railway Secrets orqali beriladi)
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo")
 
-# 🌍 195 ta davlat ma'lumotlari
+# 🌍 Barcha 195 ta davlat (to'liq ma'lumotlar)
 COUNTRIES = {
     "🇦🇫 Afg'oniston": {"tz": "Asia/Kabul", "l": {"n": "Hibatulloh Ahundzoda", "b": 1961, "o": 2021, "t": "Amir"}},
     "🇦🇱 Albaniya": {"tz": "Europe/Tirane", "l": {"n": "Bajram Begaj", "b": 1967, "o": 2022, "t": "Prezident"}},
@@ -214,24 +214,30 @@ def build_country_menu(context: ContextTypes.DEFAULT_TYPE):
     end = start + PAGE_SIZE
     current_countries = country_names[start:end]
 
+    mid = (len(current_countries) + 1) // 2
+    left_col = current_countries[:mid]
+    right_col = current_countries[mid:]
+
     buttons = []
-    row = []
-    for i, name in enumerate(current_countries):
-        row.append(InlineKeyboardButton(name, callback_data=f"country:{name}"))
-        if (i + 1) % 5 == 0:
-            buttons.append(row)
-            row = []
-    if row:
+    for i in range(max(len(left_col), len(right_col))):
+        row = []
+        if i < len(left_col):
+            row.append(InlineKeyboardButton(left_col[i], callback_data=f"country:{left_col[i]}"))
+        else:
+            row.append(InlineKeyboardButton(" ", callback_data="noop"))
+        if i < len(right_col):
+            row.append(InlineKeyboardButton(right_col[i], callback_data=f"country:{right_col[i]}"))
+        else:
+            row.append(InlineKeyboardButton(" ", callback_data="noop"))
         buttons.append(row)
 
-    nav_buttons = []
+    nav_row = []
     if page > 0:
-        nav_buttons.append(InlineKeyboardButton("⬅️ Oldingi", callback_data="prev"))
+        nav_row.append(InlineKeyboardButton("⬅️ Oldingi", callback_data="prev"))
     if end < len(country_names):
-        nav_buttons.append(InlineKeyboardButton("➡️ Keyingi", callback_data="next"))
-    
-    if nav_buttons:
-        buttons.append(nav_buttons)
+        nav_row.append(InlineKeyboardButton("➡️ Keyingi", callback_data="next"))
+    if nav_row:
+        buttons.append(nav_row)
 
     return InlineKeyboardMarkup(buttons)
 
@@ -243,7 +249,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+
     data = query.data
+    if data == "noop":
+        return
 
     if data == "prev":
         context.user_data["page"] = max(0, context.user_data.get("page", 0) - 1)
@@ -295,7 +304,7 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_click))
-    print("✅ Bot ishga tushdi! Sahifalangan rejim faol.")
+    print("✅ Bot ishga tushdi! 2 ustunli sahifalangan rejim.")
     app.run_polling()
 
 if __name__ == "__main__":
