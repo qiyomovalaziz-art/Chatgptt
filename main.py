@@ -6,7 +6,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, Command handler, CallbackQueryHandler, ContextTypes
 
 # 🔑 Bot tokenini muhit o'zgaruvchisidan olish (Railway daqt sozlanadi)
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = ("8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo")
 if not BOT_TOKEN:
     raise ValueError("❌ BOT_TOKEN muhit o'zgaruvchisi set qilinmagan! Railway yoki .env faylida belgilang.")
 
