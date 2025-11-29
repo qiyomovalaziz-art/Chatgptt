@@ -1,13 +1,14 @@
 import logging
+import os
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 import pytz
 from datetime import datetime
 
-# 🔑 BOT TOKENINGIZNI SHU YERGA QO'YING
-BOT_TOKEN = "8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo"
+# 🔑 BOT TOKEN (Railway Secrets orqali beriladi)
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo")
 
-# 🌍 Barcha 195 ta davlat (UN a'zolari + kuzatuvchi davlatlar) — to'liq ma'lumotlar
+# 🌍 195 ta davlat ma'lumotlari
 COUNTRIES = {
     "🇦🇫 Afg'oniston": {"tz": "Asia/Kabul", "l": {"n": "Hibatulloh Ahundzoda", "b": 1961, "o": 2021, "t": "Amir"}},
     "🇦🇱 Albaniya": {"tz": "Europe/Tirane", "l": {"n": "Bajram Begaj", "b": 1967, "o": 2022, "t": "Prezident"}},
@@ -204,70 +205,97 @@ COUNTRIES = {
     "🇿🇼 Zimbabwe": {"tz": "Africa/Harare", "l": {"n": "Emmerson Mnangagwa", "b": 1942, "o": 2017, "t": "Prezident"}}
 }
 
-# 🚀 /start — 100 ta tugmani 5ta qatorda (5x20) yoki 5ta qatorda 5ta tugma (5x20) emas, balki 5x5 = 25 ta tugma
-# Biz boshida 25 ta (5 qator, har birida 5 ta) ko'rsatamiz
-def build_menu(buttons, cols=5, limit=25):
-    menu = []
-    for i in range(0, min(len(buttons), limit), cols):
-        row = buttons[i:i + cols]
-        menu.append(row)
-    return menu
+PAGE_SIZE = 25
+
+def build_country_menu(context: ContextTypes.DEFAULT_TYPE):
+    country_names = sorted(COUNTRIES.keys())
+    page = context.user_data.get("page", 0)
+    start = page * PAGE_SIZE
+    end = start + PAGE_SIZE
+    current_countries = country_names[start:end]
+
+    buttons = []
+    row = []
+    for i, name in enumerate(current_countries):
+        row.append(InlineKeyboardButton(name, callback_data=f"country:{name}"))
+        if (i + 1) % 5 == 0:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+
+    nav_buttons = []
+    if page > 0:
+        nav_buttons.append(InlineKeyboardButton("⬅️ Oldingi", callback_data="prev"))
+    if end < len(country_names):
+        nav_buttons.append(InlineKeyboardButton("➡️ Keyingi", callback_data="next"))
+    
+    if nav_buttons:
+        buttons.append(nav_buttons)
+
+    return InlineKeyboardMarkup(buttons)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    country_names = sorted(COUNTRIES.keys())
-    buttons = [InlineKeyboardButton(name, callback_data=name) for name in country_names]
-    menu = build_menu(buttons, cols=5, limit=25)
-    reply_markup = InlineKeyboardMarkup(menu)
-    await update.message.reply_text("🌍 Davlatni tanlang (dastlabki 25 ta):", reply_markup=reply_markup)
+    context.user_data["page"] = 0
+    reply_markup = build_country_menu(context)
+    await update.message.reply_text("🌍 Davlatni tanlang:", reply_markup=reply_markup)
 
-# 🔘 Tugma bosilganda
 async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    name = query.data
-    c = COUNTRIES.get(name)
-    if not c:
-        await query.edit_message_text("❌ Ma'lumot topilmadi.")
-        return
+    data = query.data
 
-    try:
-        tz = pytz.timezone(c["tz"])
-        now = datetime.now(tz)
-    except Exception:
-        now = datetime.now(pytz.utc)
+    if data == "prev":
+        context.user_data["page"] = max(0, context.user_data.get("page", 0) - 1)
+        reply_markup = build_country_menu(context)
+        await query.edit_message_text("🌍 Davlatni tanlang:", reply_markup=reply_markup)
+    elif data == "next":
+        context.user_data["page"] = context.user_data.get("page", 0) + 1
+        reply_markup = build_country_menu(context)
+        await query.edit_message_text("🌍 Davlatni tanlang:", reply_markup=reply_markup)
+    elif data.startswith("country:"):
+        name = data.split(":", 1)[1]
+        c = COUNTRIES.get(name)
+        if not c:
+            await query.edit_message_text("❌ Ma'lumot topilmadi.")
+            return
 
-    date_str = now.strftime("%Y-%m-%d")
-    time_str = now.strftime("%H:%M:%S")
-    weekday = now.strftime("%A")
+        try:
+            tz = pytz.timezone(c["tz"])
+            now = datetime.now(tz)
+        except Exception:
+            now = datetime.now(pytz.utc)
 
-    weekdays_uz = {
-        "Monday": "Dushanba", "Tuesday": "Seshanba", "Wednesday": "Chorshanba",
-        "Thursday": "Payshanba", "Friday": "Juma", "Saturday": "Shanba", "Sunday": "Yakshanba"
-    }
-    weekday_uz = weekdays_uz.get(weekday, weekday)
+        date_str = now.strftime("%Y-%m-%d")
+        time_str = now.strftime("%H:%M:%S")
+        weekday = now.strftime("%A")
+        weekdays_uz = {
+            "Monday": "Dushanba", "Tuesday": "Seshanba", "Wednesday": "Chorshanba",
+            "Thursday": "Payshanba", "Friday": "Juma", "Saturday": "Shanba", "Sunday": "Yakshanba"
+        }
+        weekday_uz = weekdays_uz.get(weekday, weekday)
 
-    leader = c["l"]
-    current_year = datetime.now().year
-    age = current_year - leader["b"]
+        leader = c["l"]
+        current_year = datetime.now().year
+        age = current_year - leader["b"]
 
-    msg = (
-        f"📅 **Sana**: {date_str}\n"
-        f"⏰ **Vaqt**: {time_str}\n"
-        f"📆 **Kun**: {weekday_uz}\n\n"
-        f"**{leader['t']}**: {leader['n']}\n"
-        f"**Yoshi**: {age}\n"
-        f"**Tug'ilgan yili**: {leader['b']}\n"
-        f"**Lavozimga kirgan yili**: {leader['o']}"
-    )
-    await query.edit_message_text(msg, parse_mode="Markdown")
+        msg = (
+            f"📅 **Sana**: {date_str}\n"
+            f"⏰ **Vaqt**: {time_str}\n"
+            f"📆 **Kun**: {weekday_uz}\n\n"
+            f"**{leader['t']}**: {leader['n']}\n"
+            f"**Yoshi**: {age}\n"
+            f"**Tug'ilgan yili**: {leader['b']}\n"
+            f"**Lavozimga kirgan yili**: {leader['o']}"
+        )
+        await query.edit_message_text(msg, parse_mode="Markdown")
 
-# ▶️ Ishga tushirish
 def main():
     logging.basicConfig(level=logging.INFO)
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_click))
-    print("✅ Bot ishga tushdi! (Dastlabki 25 ta davlat ko'rsatiladi)")
+    print("✅ Bot ishga tushdi! Sahifalangan rejim faol.")
     app.run_polling()
 
 if __name__ == "__main__":
