@@ -204,25 +204,21 @@ COUNTRIES = {
     "🇿🇼 Zimbabwe": {"tz": "Africa/Harare", "l": {"n": "Emmerson Mnangagwa", "b": 1942, "o": 2017, "t": "Prezident"}}
 }
 
-# ✅ Ma'lumotlar qisqartirilgan:
-# - "tz" = timezone
-# - "l" = leader
-# - "n" = name
-# - "b" = birth_year
-# - "o" = took_office
-# - "t" = title
+# 🚀 /start — 100 ta tugmani 5ta qatorda (5x20) yoki 5ta qatorda 5ta tugma (5x20) emas, balki 5x5 = 25 ta tugma
+# Biz boshida 25 ta (5 qator, har birida 5 ta) ko'rsatamiz
+def build_menu(buttons, cols=5, limit=25):
+    menu = []
+    for i in range(0, min(len(buttons), limit), cols):
+        row = buttons[i:i + cols]
+        menu.append(row)
+    return menu
 
-# 🚀 /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    buttons = []
-    for name in sorted(COUNTRIES.keys()):
-        buttons.append([InlineKeyboardButton(name, callback_data=name)])
-    # Telegram inline tugmalar cheklovi — 100 ta guruhga bo'lish kerak
-    # 195 ta bo'lgani uchun, 100 tagina qo'yamiz (qolganini keyin qo'shsa bo'ladi)
-    if len(buttons) > 100:
-        buttons = buttons[:100]
-    reply_markup = InlineKeyboardMarkup(buttons)
-    await update.message.reply_text("🌏 Dunyoning davlatlarini tanlang (100 ta):", reply_markup=reply_markup)
+    country_names = sorted(COUNTRIES.keys())
+    buttons = [InlineKeyboardButton(name, callback_data=name) for name in country_names]
+    menu = build_menu(buttons, cols=5, limit=25)
+    reply_markup = InlineKeyboardMarkup(menu)
+    await update.message.reply_text("🌍 Davlatni tanlang (dastlabki 25 ta):", reply_markup=reply_markup)
 
 # 🔘 Tugma bosilganda
 async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -237,7 +233,7 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         tz = pytz.timezone(c["tz"])
         now = datetime.now(tz)
-    except:
+    except Exception:
         now = datetime.now(pytz.utc)
 
     date_str = now.strftime("%Y-%m-%d")
@@ -271,7 +267,7 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_click))
-    print("✅ Bot ishga tushdi! (195 ta davlatdan 100 tasi ko'rsatiladi)")
+    print("✅ Bot ishga tushdi! (Dastlabki 25 ta davlat ko'rsatiladi)")
     app.run_polling()
 
 if __name__ == "__main__":
