@@ -3,12 +3,12 @@ import os
 from datetime import datetime, timezone
 import holidays
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import Application, Command handler, CallbackQueryHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# 🔑 Bot tokenini muhit o'zgaruvchisidan olish (Railway daqt sozlanadi)
+# 🔑 Bot tokenini muhit o'zgaruvchisidan olish (Railwayda sozlanadi)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
-    raise ValueError("❌ BOT_TOKEN muhit o'zgaruvchisi set qilinmagan! Railway yoki .env faylida belgilang.")
+    raise ValueError("❌ BOT_TOKEN muhit o'zgaruvchisi set qilinmagan! Railwayda Variables bo'limida belgilang.")
 
 # 🌍 195+ DAVLAT
 COUNTRIES = [
