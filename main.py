@@ -54,7 +54,7 @@ COUNTRIES = [
     ("🇨🇬 Congo", "CG"),
     ("🇨🇩 DR Congo", "CD"),
     ("🇨🇷 Costa Rica", "CR"),
-    ("🇨🇮 Côte d’Ivoir", "CI"),
+    ("🇨🇮 Côte d’Ivoire", "CI"),  # ✅ Ijro xatosi: Ijro xatosi: "Ivoir" emas, "Ivoire"
     ("🇭🇷 Croatia", "HR"),
     ("🇨🇺 Cuba", "CU"),
     ("🇨🇾 Cyprus", "CY"),
@@ -274,8 +274,8 @@ def format_date_uz(date_str):
         months_uz = ["", "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
                      "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"]
         return f"{d.day}-{months_uz[d.month]} {d.year} yil"
-    except:
-        return date_str
+    except Exception:
+        return "Noma'lum"
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
@@ -290,7 +290,6 @@ def build_country_keyboard(page: int = 0):
     for name, code in page_countries:
         keyboard.append([InlineKeyboardButton(name, callback_data=f"country:{code}")])
 
-    # Pagination tugmalar
     nav_row = []
     if page > 0:
         nav_row.append(InlineKeyboardButton("⬅️ Oldingi", callback_data=f"page:{page-1}"))
@@ -314,7 +313,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("page:"):
         page = int(data.split(":")[1])
         reply_markup = build_country_keyboard(page=page)
-        await query.edit_message_text("🌍 Davlatlardan birini tanlang:", reply_markup=reply_markup)
+        await query.edit_message_text("🌍 Davlatlardan birini tanlang (sahifalangan):", reply_markup=reply_markup)
 
     elif data.startswith("country:"):
         country_code = data.split(":")[1]
@@ -329,16 +328,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         date_str = now.strftime("%Y-%m-%d")
         weekday_uz = WEEKDAYS_UZ.get(now.strftime("%A"), now.strftime("%A"))
 
-        # Bayram
+        # Bayramni xavfsiz aniqlash
+        holiday_text = "⚠️ Bayram ma'lumotlari mavjud emas"
         try:
+            # holidays kutubxonasida mavjud bo'lsa
             if country_code in holidays.list_supported_countries():
-                country_holidays = holidays.country_holidays(country_code)
-                today_holidays = country_holidays.get(now.date())
-                holiday_text = f"🎉 Bayram: {today_holidays}" if today_holidays else "❌ Bugun bayram yo'q"
-            else:
-                holiday_text = "⚠️ Bayram ma'lumotlari mavjud emas"
-        except:
-            holiday_text = "⚠️ Bayram ma'lumotlari olishda xatolik"
+                # Kosovo (XK) kabi kodlar uchun
+                if country_code == "XK":
+                    holiday_text = "⚠️ Kosovo uchun bayram ma'lumotlari mavjud emas"
+                else:
+                    country_holidays = holidays.country_holidays(country_code)
+                    today_holidays = country_holidays.get(now.date())
+                    holiday_text = f"🎉 Bayram: {today_holidays}" if today_holidays else "❌ Bugun bayram yo'q"
+        except Exception as e:
+            holiday_text = "⚠️ Bayram ma'lumotlarini olishda xatolik"
 
         # Prezident
         prezident_info = PRESIDENTS.get(country_code, ("❌ Ma'lumot yo'q", None))
@@ -357,11 +360,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{holiday_text}\n\n"
             f"{prez_text}"
         )
-        await query.edit_message_text(message)
+        await query.edit_message_text(message, parse_mode=None)
 
 def main():
-    if BOT_TOKEN == "BU_YERGA_OZINGIZNING_BOT_TOKENINGIZNI_QO'YING":
-        raise ValueError("❗ Iltimos, BOT_TOKEN o'zgaruvchisiga o'zingizning bot tokeningizni qo'ying!")
+    if BOT_TOKEN == "8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo":
+        # 👆 Agar siz hali token o'zgartirmagan bo'lsangiz, xabar berish
+        raise ValueError("❗ Iltimos, BOT_TOKEN o'zgaruvchisiga o'zingizning haqiqiy bot tokeningizni qo'ying!")
 
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
