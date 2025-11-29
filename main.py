@@ -1,377 +1,277 @@
 import logging
-from datetime import datetime, timezone
-import holidays
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+import pytz
+from datetime import datetime
 
-# ========================
 # 🔑 BOT TOKENINGIZNI SHU YERGA QO'YING
-# ========================
-BOT_TOKEN = "8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo"
+BOT_TOKEN = "BU_YERGA_TOKENINGIZNI_QO'YING"
 
-# ========================
-# 🌍 195+ DAVLAT (Barcha BMT a'zolari + Vatikan + Falastin)
-# ========================
-COUNTRIES = [
-    ("🇦🇫 Afghanistan", "AF"),
-    ("🇦🇱 Albania", "AL"),
-    ("🇩🇿 Algeria", "DZ"),
-    ("🇦🇩 Andorra", "AD"),
-    ("🇦🇴 Angola", "AO"),
-    ("🇦🇬 Antigua and Barbuda", "AG"),
-    ("🇦🇷 Argentina", "AR"),
-    ("🇦🇲 Armenia", "AM"),
-    ("🇦🇺 Australia", "AU"),
-    ("🇦🇹 Austria", "AT"),
-    ("🇦🇿 Azerbaijan", "AZ"),
-    ("🇧🇸 Bahamas", "BS"),
-    ("🇧🇭 Bahrain", "BH"),
-    ("🇧🇩 Bangladesh", "BD"),
-    ("🇧🇧 Barbados", "BB"),
-    ("🇧🇾 Belarus", "BY"),
-    ("🇧🇪 Belgium", "BE"),
-    ("🇧🇿 Belize", "BZ"),
-    ("🇧🇯 Benin", "BJ"),
-    ("🇧🇹 Bhutan", "BT"),
-    ("🇧🇴 Bolivia", "BO"),
-    ("🇧🇦 Bosnia and Herzegovina", "BA"),
-    ("🇧🇼 Botswana", "BW"),
-    ("🇧🇷 Brazil", "BR"),
-    ("🇧🇳 Brunei", "BN"),
-    ("🇧🇬 Bulgaria", "BG"),
-    ("🇧🇫 Burkina Faso", "BF"),
-    ("🇧🇮 Burundi", "BI"),
-    ("🇨🇻 Cape Verde", "CV"),
-    ("🇰🇭 Cambodia", "KH"),
-    ("🇨🇲 Cameroon", "CM"),
-    ("🇨🇦 Canada", "CA"),
-    ("🇨🇫 Central African Republic", "CF"),
-    ("🇹🇩 Chad", "TD"),
-    ("🇨🇱 Chile", "CL"),
-    ("🇨🇳 China", "CN"),
-    ("🇨🇴 Colombia", "CO"),
-    ("🇰🇲 Comoros", "KM"),
-    ("🇨🇬 Congo", "CG"),
-    ("🇨🇩 DR Congo", "CD"),
-    ("🇨🇷 Costa Rica", "CR"),
-    ("🇨🇮 Côte d’Ivoire", "CI"),  # ✅ Ijro xatosi: Ijro xatosi: "Ivoir" emas, "Ivoire"
-    ("🇭🇷 Croatia", "HR"),
-    ("🇨🇺 Cuba", "CU"),
-    ("🇨🇾 Cyprus", "CY"),
-    ("🇨🇿 Czechia", "CZ"),
-    ("🇩🇰 Denmark", "DK"),
-    ("🇩🇯 Djibouti", "DJ"),
-    ("🇩🇲 Dominica", "DM"),
-    ("🇩🇴 Dominican Republic", "DO"),
-    ("🇪🇨 Ecuador", "EC"),
-    ("🇪🇬 Egypt", "EG"),
-    ("🇸🇻 El Salvador", "SV"),
-    ("🇬🇶 Equatorial Guinea", "GQ"),
-    ("🇪🇷 Eritrea", "ER"),
-    ("🇪🇪 Estonia", "EE"),
-    ("🇸🇿 Eswatini", "SZ"),
-    ("🇪🇹 Ethiopia", "ET"),
-    ("🇫🇯 Fiji", "FJ"),
-    ("🇫🇮 Finland", "FI"),
-    ("🇫🇷 France", "FR"),
-    ("🇬🇦 Gabon", "GA"),
-    ("🇬🇲 Gambia", "GM"),
-    ("🇬🇪 Georgia", "GE"),
-    ("🇩🇪 Germany", "DE"),
-    ("🇬🇭 Ghana", "GH"),
-    ("🇬🇷 Greece", "GR"),
-    ("🇬🇩 Grenada", "GD"),
-    ("🇬🇹 Guatemala", "GT"),
-    ("🇬🇳 Guinea", "GN"),
-    ("🇬🇼 Guinea-Bissau", "GW"),
-    ("🇬🇾 Guyana", "GY"),
-    ("🇭🇹 Haiti", "HT"),
-    ("🇻🇦 Holy See (Vatican)", "VA"),
-    ("🇭🇳 Honduras", "HN"),
-    ("🇭🇺 Hungary", "HU"),
-    ("🇮🇸 Iceland", "IS"),
-    ("🇮🇳 India", "IN"),
-    ("🇮🇩 Indonesia", "ID"),
-    ("🇮🇷 Iran", "IR"),
-    ("🇮🇶 Iraq", "IQ"),
-    ("🇮🇪 Ireland", "IE"),
-    ("🇮🇱 Israel", "IL"),
-    ("🇮🇹 Italy", "IT"),
-    ("🇯🇲 Jamaica", "JM"),
-    ("🇯🇵 Japan", "JP"),
-    ("🇯🇴 Jordan", "JO"),
-    ("🇰🇿 Kazakhstan", "KZ"),
-    ("🇰🇪 Kenya", "KE"),
-    ("🇰🇮 Kiribati", "KI"),
-    ("🇰🇵 North Korea", "KP"),
-    ("🇰🇷 South Korea", "KR"),
-    ("🇽🇰 Kosovo", "XK"),
-    ("🇰🇼 Kuwait", "KW"),
-    ("🇰🇬 Kyrgyzstan", "KG"),
-    ("🇱🇦 Laos", "LA"),
-    ("🇱🇻 Latvia", "LV"),
-    ("🇱🇧 Lebanon", "LB"),
-    ("🇱🇸 Lesotho", "LS"),
-    ("🇱🇷 Liberia", "LR"),
-    ("🇱🇾 Libya", "LY"),
-    ("🇱🇮 Liechtenstein", "LI"),
-    ("🇱🇹 Lithuania", "LT"),
-    ("🇱🇺 Luxembourg", "LU"),
-    ("🇲🇬 Madagascar", "MG"),
-    ("🇲🇼 Malawi", "MW"),
-    ("🇲🇾 Malaysia", "MY"),
-    ("🇲🇻 Maldives", "MV"),
-    ("🇲🇱 Mali", "ML"),
-    ("🇲🇹 Malta", "MT"),
-    ("🇲🇭 Marshall Islands", "MH"),
-    ("🇲🇷 Mauritania", "MR"),
-    ("🇲🇺 Mauritius", "MU"),
-    ("🇲🇽 Mexico", "MX"),
-    ("🇫🇲 Micronesia", "FM"),
-    ("🇲🇩 Moldova", "MD"),
-    ("🇲🇨 Monaco", "MC"),
-    ("🇲🇳 Mongolia", "MN"),
-    ("🇲🇪 Montenegro", "ME"),
-    ("🇲🇦 Morocco", "MA"),
-    ("🇲🇿 Mozambique", "MZ"),
-    ("🇲🇲 Myanmar", "MM"),
-    ("🇳🇦 Namibia", "NA"),
-    ("🇳🇷 Nauru", "NR"),
-    ("🇳🇵 Nepal", "NP"),
-    ("🇳🇱 Netherlands", "NL"),
-    ("🇳🇿 New Zealand", "NZ"),
-    ("🇳🇮 Nicaragua", "NI"),
-    ("🇳🇪 Niger", "NE"),
-    ("🇳🇬 Nigeria", "NG"),
-    ("🇲🇰 North Macedonia", "MK"),
-    ("🇳🇴 Norway", "NO"),
-    ("🇴🇲 Oman", "OM"),
-    ("🇵🇰 Pakistan", "PK"),
-    ("🇵🇼 Palau", "PW"),
-    ("🇵🇸 Palestine", "PS"),
-    ("🇵🇦 Panama", "PA"),
-    ("🇵🇬 Papua New Guinea", "PG"),
-    ("🇵🇾 Paraguay", "PY"),
-    ("🇵🇪 Peru", "PE"),
-    ("🇵🇭 Philippines", "PH"),
-    ("🇵🇱 Poland", "PL"),
-    ("🇵🇹 Portugal", "PT"),
-    ("🇶🇦 Qatar", "QA"),
-    ("🇷🇴 Romania", "RO"),
-    ("🇷🇺 Russia", "RU"),
-    ("🇷🇼 Rwanda", "RW"),
-    ("🇰🇳 Saint Kitts and Nevis", "KN"),
-    ("🇱🇨 Saint Lucia", "LC"),
-    ("🇻🇨 Saint Vincent and the Grenadines", "VC"),
-    ("🇼🇸 Samoa", "WS"),
-    ("🇸🇲 San Marino", "SM"),
-    ("🇸🇹 Sao Tome and Principe", "ST"),
-    ("🇸🇦 Saudi Arabia", "SA"),
-    ("🇸🇳 Senegal", "SN"),
-    ("🇷🇸 Serbia", "RS"),
-    ("🇸🇨 Seychelles", "SC"),
-    ("🇸🇱 Sierra Leone", "SL"),
-    ("🇸🇬 Singapore", "SG"),
-    ("🇸🇰 Slovakia", "SK"),
-    ("🇸🇮 Slovenia", "SI"),
-    ("🇸🇧 Solomon Islands", "SB"),
-    ("🇸🇴 Somalia", "SO"),
-    ("🇿🇦 South Africa", "ZA"),
-    ("🇸🇸 South Sudan", "SS"),
-    ("🇪🇸 Spain", "ES"),
-    ("🇱🇰 Sri Lanka", "LK"),
-    ("🇸🇩 Sudan", "SD"),
-    ("🇸🇷 Suriname", "SR"),
-    ("🇸🇪 Sweden", "SE"),
-    ("🇨🇭 Switzerland", "CH"),
-    ("🇸🇾 Syria", "SY"),
-    ("🇹🇯 Tajikistan", "TJ"),
-    ("🇹🇿 Tanzania", "TZ"),
-    ("🇹🇭 Thailand", "TH"),
-    ("🇹🇱 Timor-Leste", "TL"),
-    ("🇹🇬 Togo", "TG"),
-    ("🇹🇴 Tonga", "TO"),
-    ("🇹🇹 Trinidad and Tobago", "TT"),
-    ("🇹🇳 Tunisia", "TN"),
-    ("🇹🇷 Turkey", "TR"),
-    ("🇹🇲 Turkmenistan", "TM"),
-    ("🇹🇻 Tuvalu", "TV"),
-    ("🇺🇬 Uganda", "UG"),
-    ("🇺🇦 Ukraine", "UA"),
-    ("🇦🇪 United Arab Emirates", "AE"),
-    ("🇬🇧 United Kingdom", "GB"),
-    ("🇺🇸 United States", "US"),
-    ("🇺🇾 Uruguay", "UY"),
-    ("🇺🇿 Uzbekistan", "UZ"),
-    ("🇻🇺 Vanuatu", "VU"),
-    ("🇻🇪 Venezuela", "VE"),
-    ("🇻🇳 Vietnam", "VN"),
-    ("🇾🇪 Yemen", "YE"),
-    ("🇿🇲 Zambia", "ZM"),
-    ("🇿🇼 Zimbabwe", "ZW"),
-]
-
-# 🗳️ Prezidentlar (2025-yil noyabr holatiga)
-PRESIDENTS = {
-    "US": ("Joe Biden", "2021-01-20"),
-    "UZ": ("Shavkat Mirziyoyev", "2016-12-14"),
-    "RU": ("Vladimir Putin", "2012-05-07"),
-    "CN": ("Xi Jinping", "2013-03-15"),
-    "FR": ("Emmanuel Macron", "2017-05-14"),
-    "DE": ("Frank-Walter Steinmeier", "2017-03-19"),
-    "GB": ("Charles III", "2022-09-08"),
-    "IN": ("Droupadi Murmu", "2022-07-25"),
-    "BR": ("Luiz Inácio Lula da Silva", "2023-01-01"),
-    "JP": ("Fumio Kishida", "2021-10-04"),
-    "CA": ("Mary Simon", "2021-07-26"),
-    "AU": ("David Hurley", "2019-07-01"),
-    "TR": ("Recep Tayyip Erdoğan", "2014-08-28"),
-    "SA": ("Salman bin Abdulaziz", "2015-01-23"),
-    "AE": ("Mohamed bin Zayed Al Nahyan", "2022-05-14"),
-    "EG": ("Abdel Fattah el-Sisi", "2014-06-08"),
-    "ZA": ("Cyril Ramaphosa", "2018-02-15"),
-    "NG": ("Bola Tinubu", "2023-05-29"),
-    "KE": ("William Ruto", "2022-09-13"),
-    "IL": ("Isaac Herzog", "2021-07-07"),
-    "IR": ("Masoud Pezeshkian", "2024-07-30"),
-    "PK": ("Asif Ali Zardari", "2024-03-10"),
-    "ID": ("Joko Widodo", "2014-10-20"),
-    "KR": ("Yoon Suk-yeol", "2022-05-10"),
-    "IT": ("Sergio Mattarella", "2015-02-03"),
-    "ES": ("Pedro Sánchez", "2018-06-02"),
-    "UA": ("Volodymyr Zelenskyy", "2019-05-20"),
-    "BY": ("Alexander Lukashenko", "1994-07-20"),
-    "KZ": ("Kassym-Jomart Tokayev", "2019-03-20"),
-    "MM": ("Min Aung Hlaing", "2021-08-01"),
-    "VN": ("To Lam", "2024-10-21"),
-    "TH": ("Srettha Thavisin", "2023-08-22"),
-    "PH": ("Bongbong Marcos", "2022-06-30"),
-    "MY": ("Sultan Ibrahim Iskandar", "2024-01-31"),
-    "SG": ("Tharman Shanmugaratnam", "2023-09-14"),
-    "NZ": ("Cindy Kiro", "2021-10-21"),
-    "SE": ("Ulf Kristersson", "2022-10-18"),
-    "NO": ("Jonas Gahr Støre", "2021-10-14"),
-    "CH": ("Viola Amherd", "2024-01-01"),
-    "PS": ("Mahmoud Abbas", "2005-01-15"),
-    "VA": ("Pope Francis", "2013-03-13"),
+# 🌍 Barcha 195 ta davlat (UN a'zolari + kuzatuvchi davlatlar) — to'liq ma'lumotlar
+COUNTRIES = {
+    "🇦🇫 Afg'oniston": {"tz": "Asia/Kabul", "l": {"n": "Hibatulloh Ahundzoda", "b": 1961, "o": 2021, "t": "Amir"}},
+    "🇦🇱 Albaniya": {"tz": "Europe/Tirane", "l": {"n": "Bajram Begaj", "b": 1967, "o": 2022, "t": "Prezident"}},
+    "🇩🇿 Jazoir": {"tz": "Africa/Algiers", "l": {"n": "Abdelmadjid Tebboune", "b": 1945, "o": 2019, "t": "Prezident"}},
+    "🇦🇩 Andorra": {"tz": "Europe/Andorra", "l": {"n": "Xavier Espot Zamora", "b": 1979, "o": 2019, "t": "Bosh vazir"}},
+    "🇦🇴 Angola": {"tz": "Africa/Luanda", "l": {"n": "João Lourenço", "b": 1954, "o": 2017, "t": "Prezident"}},
+    "🇦🇬 Antigua va Barbuda": {"tz": "America/Antigua", "l": {"n": "Gaston Browne", "b": 1967, "o": 2014, "t": "Bosh vazir"}},
+    "🇦🇷 Argentina": {"tz": "America/Argentina/Buenos_Aires", "l": {"n": "Javier Milei", "b": 1970, "o": 2023, "t": "Prezident"}},
+    "🇦🇲 Armaniston": {"tz": "Asia/Yerevan", "l": {"n": "Vahagn Xachaturyan", "b": 1959, "o": 2022, "t": "Prezident"}},
+    "🇦🇺 Avstraliya": {"tz": "Australia/Sydney", "l": {"n": "Anthony Albanese", "b": 1963, "o": 2022, "t": "Bosh vazir"}},
+    "🇦🇹 Avstriya": {"tz": "Europe/Vienna", "l": {"n": "Karl Nehammer", "b": 1972, "o": 2021, "t": "Kansler"}},
+    "🇦🇿 Ozarbayjon": {"tz": "Asia/Baku", "l": {"n": "Ilhom Aliyev", "b": 1961, "o": 2003, "t": "Prezident"}},
+    "🇧🇸 Bagama orollari": {"tz": "America/Nassau", "l": {"n": "Philip Davis", "b": 1951, "o": 2021, "t": "Bosh vazir"}},
+    "🇧🇭 Bahrayn": {"tz": "Asia/Bahrain", "l": {"n": "Salmon bin Hamad Al Xalifa", "b": 1969, "o": 2005, "t": "Amir (de-fakto)"}},
+    "🇧🇩 Bangladesh": {"tz": "Asia/Dhaka", "l": {"n": "Muhammad Shehbaz Sharif", "b": 1951, "o": 2024, "t": "Bosh vazir"}},
+    "🇧🇧 Barbados": {"tz": "America/Barbados", "l": {"n": "Mia Mottley", "b": 1965, "o": 2018, "t": "Bosh vazir"}},
+    "🇧🇾 Belorussiya": {"tz": "Europe/Minsk", "l": {"n": "Aleksandr Lukashenko", "b": 1954, "o": 1994, "t": "Prezident"}},
+    "🇧🇪 Belgiya": {"tz": "Europe/Brussels", "l": {"n": "Alexander De Croo", "b": 1975, "o": 2020, "t": "Bosh vazir"}},
+    "🇧🇿 Beliz": {"tz": "America/Belize", "l": {"n": "Johnny Briceño", "b": 1960, "o": 2020, "t": "Bosh vazir"}},
+    "🇧🇯 Benin": {"tz": "Africa/Porto-Novo", "l": {"n": "Patrice Talon", "b": 1958, "o": 2016, "t": "Prezident"}},
+    "🇧🇹 Butan": {"tz": "Asia/Thimphu", "l": {"n": "Lotay Tshering", "b": 1960, "o": 2018, "t": "Bosh vazir"}},
+    "🇧🇴 Boliviya": {"tz": "America/La_Paz", "l": {"n": "Luis Arce", "b": 1963, "o": 2020, "t": "Prezident"}},
+    "🇧🇦 Bosniya va Gertsegovina": {"tz": "Europe/Sarajevo", "l": {"n": "Željko Komšić", "b": 1964, "o": 2018, "t": "Kollektiv Prezident a'zosi"}},
+    "🇧🇼 Botsvana": {"tz": "Africa/Gaborone", "l": {"n": "Mokgweetsi Masisi", "b": 1961, "o": 2018, "t": "Prezident"}},
+    "🇧🇷 Braziliya": {"tz": "America/Sao_Paulo", "l": {"n": "Luiz Inácio Lula da Silva", "b": 1945, "o": 2023, "t": "Prezident"}},
+    "🇧🇳 Bruney": {"tz": "Asia/Brunei", "l": {"n": "Sulton Hassanal Bolkiah", "b": 1946, "o": 1967, "t": "Sulton"}},
+    "🇧🇬 Bolgariya": {"tz": "Europe/Sofia", "l": {"n": "Rumen Radev", "b": 1963, "o": 2017, "t": "Prezident"}},
+    "🇧🇫 Burkina-Faso": {"tz": "Africa/Ouagadougou", "l": {"n": "Ibrahim Traoré", "b": 1988, "o": 2022, "t": "Prezident"}},
+    "🇧🇮 Burundi": {"tz": "Africa/Bujumbura", "l": {"n": "Évariste Ndayishimiye", "b": 1968, "o": 2020, "t": "Prezident"}},
+    "🇨🇻 Kabo-Verde": {"tz": "Atlantic/Cape_Verde", "l": {"n": "José Maria Neves", "b": 1960, "o": 2021, "t": "Bosh vazir"}},
+    "🇰🇭 Kambodja": {"tz": "Asia/Phnom_Penh", "l": {"n": "Hun Manet", "b": 1977, "o": 2023, "t": "Bosh vazir"}},
+    "🇨🇲 Kamerun": {"tz": "Africa/Douala", "l": {"n": "Paul Biya", "b": 1933, "o": 1982, "t": "Prezident"}},
+    "🇨🇦 Kanada": {"tz": "America/Toronto", "l": {"n": "Justin Trudeau", "b": 1971, "o": 2015, "t": "Bosh vazir"}},
+    "🇨🇫 Markaziy Afrika Respublikasi": {"tz": "Africa/Bangui", "l": {"n": "Faustin-Archange Touadéra", "b": 1957, "o": 2016, "t": "Prezident"}},
+    "🇹🇩 Chod": {"tz": "Africa/Ndjamena", "l": {"n": "Mahamat Idriss Déby", "b": 1984, "o": 2024, "t": "Prezident"}},
+    "🇨🇱 Chili": {"tz": "America/Santiago", "l": {"n": "Gabriel Boric", "b": 1986, "o": 2022, "t": "Prezident"}},
+    "🇨🇳 Xitoy": {"tz": "Asia/Shanghai", "l": {"n": "Xi Jinping", "b": 1953, "o": 2013, "t": "Prezident"}},
+    "🇨🇴 Kolumbiya": {"tz": "America/Bogota", "l": {"n": "Gustavo Petro", "b": 1960, "o": 2022, "t": "Prezident"}},
+    "🇰🇲 Komor orollari": {"tz": "Indian/Comoro", "l": {"n": "Azali Assoumani", "b": 1959, "o": 2016, "t": "Prezident"}},
+    "🇨🇬 Konga (Brazzavil)": {"tz": "Africa/Brazzaville", "l": {"n": "Denis Sassou Nguesso", "b": 1943, "o": 1997, "t": "Prezident"}},
+    "🇨🇩 Kongo (Kinshasa)": {"tz": "Africa/Kinshasa", "l": {"n": "Félix Tshisekedi", "b": 1963, "o": 2019, "t": "Prezident"}},
+    "🇨🇷 Kosta-Rika": {"tz": "America/Costa_Rica", "l": {"n": "Rodrigo Chaves", "b": 1961, "o": 2022, "t": "Prezident"}},
+    "🇨🇮 Kot-d’Ivuar": {"tz": "Africa/Abidjan", "l": {"n": "Alassane Ouattara", "b": 1942, "o": 2010, "t": "Prezident"}},
+    "🇭🇷 Xorvatiya": {"tz": "Europe/Zagreb", "l": {"n": "Zoran Milanović", "b": 1966, "o": 2020, "t": "Prezident"}},
+    "🇨🇺 Kuba": {"tz": "America/Havana", "l": {"n": "Miguel Díaz-Canel", "b": 1960, "o": 2018, "t": "Prezident"}},
+    "🇨🇾 Kipr": {"tz": "Asia/Nicosia", "l": {"n": "Nikos Christodoulides", "b": 1973, "o": 2023, "t": "Prezident"}},
+    "🇨🇿 Chexiya": {"tz": "Europe/Prague", "l": {"n": "Petr Fiala", "b": 1964, "o": 2021, "t": "Bosh vazir"}},
+    "🇩🇰 Daniya": {"tz": "Europe/Copenhagen", "l": {"n": "Mette Frederiksen", "b": 1977, "o": 2019, "t": "Bosh vazir"}},
+    "🇩🇯 Jibuti": {"tz": "Africa/Djibouti", "l": {"n": "Ismaïl Omar Guelleh", "b": 1947, "o": 1999, "t": "Prezident"}},
+    "🇩🇲 Dominika": {"tz": "America/Dominica", "l": {"n": "Roosevelt Skerrit", "b": 1972, "o": 2004, "t": "Bosh vazir"}},
+    "🇩🇴 Dominikan Respublikasi": {"tz": "America/Santo_Domingo", "l": {"n": "Luis Abinader", "b": 1967, "o": 2020, "t": "Prezident"}},
+    "🇹🇱 Sharqiy Timor": {"tz": "Asia/Dili", "l": {"n": "Xanana Gusmão", "b": 1945, "o": 2023, "t": "Bosh vazir"}},
+    "🇪🇨 Ekvador": {"tz": "America/Guayaquil", "l": {"n": "Daniel Noboa", "b": 1987, "o": 2023, "t": "Prezident"}},
+    "🇪🇬 Misr": {"tz": "Africa/Cairo", "l": {"n": "Abdul Fattoh al-Sisi", "b": 1954, "o": 2014, "t": "Prezident"}},
+    "🇸🇻 Salvador": {"tz": "America/El_Salvador", "l": {"n": "Nayib Bukele", "b": 1981, "o": 2019, "t": "Prezident"}},
+    "🇬🇶 Ekvatorial Gvineya": {"tz": "Africa/Malabo", "l": {"n": "Teodoro Obiang Nguema", "b": 1942, "o": 1979, "t": "Prezident"}},
+    "🇪🇷 Eritreya": {"tz": "Africa/Asmara", "l": {"n": "Isaias Afwerki", "b": 1946, "o": 1993, "t": "Prezident"}},
+    "🇪🇪 Estonya": {"tz": "Europe/Tallinn", "l": {"n": "Kaja Kallas", "b": 1977, "o": 2021, "t": "Bosh vazir"}},
+    "🇸🇿 Eswatini": {"tz": "Africa/Mbabane", "l": {"n": "Mswati III", "b": 1968, "o": 1986, "t": "Qirol"}},
+    "🇪🇹 Efiopiya": {"tz": "Africa/Addis_Ababa", "l": {"n": "Abiy Ahmed", "b": 1976, "o": 2018, "t": "Bosh vazir"}},
+    "🇫🇯 Fidji": {"tz": "Pacific/Fiji", "l": {"n": "Sitiveni Rabuka", "b": 1948, "o": 2022, "t": "Bosh vazir"}},
+    "🇫🇮 Finlandiya": {"tz": "Europe/Helsinki", "l": {"n": "Alexander Stubb", "b": 1968, "o": 2024, "t": "Prezident"}},
+    "🇫🇷 Fransiya": {"tz": "Europe/Paris", "l": {"n": "Emmanuel Macron", "b": 1977, "o": 2017, "t": "Prezident"}},
+    "🇬🇦 Gabon": {"tz": "Africa/Libreville", "l": {"n": "Brice Oligui Nguema", "b": 1976, "o": 2023, "t": "Prezident"}},
+    "🇬🇲 Gambia": {"tz": "Africa/Banjul", "l": {"n": "Adama Barrow", "b": 1965, "o": 2017, "t": "Prezident"}},
+    "🇬🇪 Gruziya": {"tz": "Asia/Tbilisi", "l": {"n": "Irakli Kobakhidze", "b": 1985, "o": 2024, "t": "Bosh vazir"}},
+    "🇩🇪 Germaniya": {"tz": "Europe/Berlin", "l": {"n": "Olaf Scholz", "b": 1958, "o": 2021, "t": "Kansler"}},
+    "🇬🇭 Gana": {"tz": "Africa/Accra", "l": {"n": "Nana Akufo-Addo", "b": 1944, "o": 2017, "t": "Prezident"}},
+    "🇬🇷 Gretsiya": {"tz": "Europe/Athens", "l": {"n": "Kyriakos Mitsotakis", "b": 1968, "o": 2019, "t": "Bosh vazir"}},
+    "🇬🇩 Grenada": {"tz": "America/Grenada", "l": {"n": "Dickon Mitchell", "b": 1983, "o": 2022, "t": "Bosh vazir"}},
+    "🇬🇹 Gvatemala": {"tz": "America/Guatemala", "l": {"n": "Bernardo Arévalo", "b": 1958, "o": 2024, "t": "Prezident"}},
+    "🇬🇳 Gvineya": {"tz": "Africa/Conakry", "l": {"n": "Mamady Doumbouya", "b": 1980, "o": 2021, "t": "Prezident"}},
+    "🇬🇼 Gvineya-Bisau": {"tz": "Africa/Bissau", "l": {"n": "Geraldo Martins", "b": 1973, "o": 2023, "t": "Bosh vazir"}},
+    "🇬🇾 Gayana": {"tz": "America/Guyana", "l": {"n": "Irfaan Ali", "b": 1980, "o": 2020, "t": "Prezident"}},
+    "🇭🇹 Gaiti": {"tz": "America/Port-au-Prince", "l": {"n": "Ariel Henry", "b": 1958, "o": 2021, "t": "Bosh vazir"}},
+    "🇭🇳 Gonduras": {"tz": "America/Tegucigalpa", "l": {"n": "Xiomara Castro", "b": 1959, "o": 2022, "t": "Prezident"}},
+    "🇭🇺 Vengriya": {"tz": "Europe/Budapest", "l": {"n": "Viktor Orbán", "b": 1963, "o": 2010, "t": "Bosh vazir"}},
+    "🇮🇸 Islandiya": {"tz": "Atlantic/Reykjavik", "l": {"n": "Bjarni Benediktsson", "b": 1970, "o": 2024, "t": "Bosh vazir"}},
+    "🇮🇳 Hindiston": {"tz": "Asia/Kolkata", "l": {"n": "Narendra Modi", "b": 1950, "o": 2014, "t": "Bosh vazir"}},
+    "🇮🇩 Indoneziya": {"tz": "Asia/Jakarta", "l": {"n": "Prabowo Subianto", "b": 1951, "o": 2024, "t": "Prezident"}},
+    "🇮🇷 Eron": {"tz": "Asia/Tehran", "l": {"n": "Ebrahim Raisi", "b": 1960, "o": 2021, "t": "Prezident"}},
+    "🇮🇶 Iroq": {"tz": "Asia/Baghdad", "l": {"n": "Mustafa al-Kadhimi", "b": 1967, "o": 2020, "t": "Bosh vazir"}},
+    "🇮🇪 Irlandiya": {"tz": "Europe/Dublin", "l": {"n": "Simon Harris", "b": 1986, "o": 2024, "t": "Bosh vazir"}},
+    "🇮🇱 Isroil": {"tz": "Asia/Jerusalem", "l": {"n": "Benjamin Netanyahu", "b": 1949, "o": 2022, "t": "Bosh vazir"}},
+    "🇮🇹 Italiya": {"tz": "Europe/Rome", "l": {"n": "Giorgia Meloni", "b": 1977, "o": 2022, "t": "Bosh vazir"}},
+    "🇯🇲 Yamayka": {"tz": "America/Jamaica", "l": {"n": "Andrew Holness", "b": 1972, "o": 2016, "t": "Bosh vazir"}},
+    "🇯🇵 Yaponiya": {"tz": "Asia/Tokyo", "l": {"n": "Fumio Kishida", "b": 1957, "o": 2021, "t": "Bosh vazir"}},
+    "🇯🇴 Iordaniya": {"tz": "Asia/Amman", "l": {"n": "Bisher Al-Khasawneh", "b": 1969, "o": 2020, "t": "Bosh vazir"}},
+    "🇰🇿 Qozog'iston": {"tz": "Asia/Almaty", "l": {"n": "Qasim-Jomart Toqaev", "b": 1953, "o": 2019, "t": "Prezident"}},
+    "🇰🇪 Keniya": {"tz": "Africa/Nairobi", "l": {"n": "William Ruto", "b": 1966, "o": 2022, "t": "Prezident"}},
+    "🇰🇮 Kiribati": {"tz": "Pacific/Tarawa", "l": {"n": "Taneti Maamau", "b": 1960, "o": 2016, "t": "Prezident"}},
+    "🇰🇵 Shimoliy Koreya": {"tz": "Asia/Pyongyang", "l": {"n": "Kim Jong-un", "b": 1984, "o": 2011, "t": "Rahbar"}},
+    "🇰🇷 Janubiy Koreya": {"tz": "Asia/Seoul", "l": {"n": "Yoon Suk-yeol", "b": 1960, "o": 2022, "t": "Prezident"}},
+    "🇰🇼 Quvayt": {"tz": "Asia/Kuwait", "l": {"n": "Shayx Mesh'al al-Ahmad al-Jobir", "b": 1940, "o": 2023, "t": "Amir"}},
+    "🇰🇬 Qirg'iziston": {"tz": "Asia/Bishkek", "l": {"n": "Sadyr Japarov", "b": 1968, "o": 2021, "t": "Prezident"}},
+    "🇱🇦 Laos": {"tz": "Asia/Vientiane", "l": {"n": "Sonexay Siphandone", "b": 1965, "o": 2022, "t": "Bosh vazir"}},
+    "🇱🇻 Latviya": {"tz": "Europe/Riga", "l": {"n": "Evika Siliņa", "b": 1975, "o": 2023, "t": "Bosh vazir"}},
+    "🇱🇧 Livan": {"tz": "Asia/Beirut", "l": {"n": "Najib Mikati", "b": 1955, "o": 2021, "t": "Bosh vazir"}},
+    "🇱🇸 Lesoto": {"tz": "Africa/Maseru", "l": {"n": "Sam Matekane", "b": 1958, "o": 2022, "t": "Bosh vazir"}},
+    "🇱🇷 Liberiya": {"tz": "Africa/Monrovia", "l": {"n": "Joseph Boakai", "b": 1955, "o": 2024, "t": "Prezident"}},
+    "🇱🇾 Liviya": {"tz": "Africa/Tripoli", "l": {"n": "Abdul Hamid Dbeibeh", "b": 1959, "o": 2021, "t": "Bosh vazir"}},
+    "🇱🇮 Lixtenshteyn": {"tz": "Europe/Vaduz", "l": {"n": "Daniel Risch", "b": 1978, "o": 2021, "t": "Bosh vazir"}},
+    "🇱🇹 Litva": {"tz": "Europe/Vilnius", "l": {"n": "Ingrida Šimonytė", "b": 1974, "o": 2020, "t": "Bosh vazir"}},
+    "🇱🇺 Lyuksemburg": {"tz": "Europe/Luxembourg", "l": {"n": "Luc Frieden", "b": 1963, "o": 2023, "t": "Bosh vazir"}},
+    "🇲🇬 Madagaskar": {"tz": "Indian/Antananarivo", "l": {"n": "Andry Rajoelina", "b": 1974, "o": 2019, "t": "Prezident"}},
+    "🇲🇼 Malavi": {"tz": "Africa/Blantyre", "l": {"n": "Lazarus Chakwera", "b": 1965, "o": 2020, "t": "Prezident"}},
+    "🇲🇾 Malayziya": {"tz": "Asia/Kuala_Lumpur", "l": {"n": "Anwar Ibrahim", "b": 1947, "o": 2022, "t": "Bosh vazir"}},
+    "🇲🇻 Maldiv orollari": {"tz": "Indian/Maldives", "l": {"n": "Mohamed Muizzu", "b": 1978, "o": 2023, "t": "Prezident"}},
+    "🇲🇱 Mali": {"tz": "Africa/Bamako", "l": {"n": "Assimi Goïta", "b": 1983, "o": 2021, "t": "Prezident"}},
+    "🇲🇹 Malta": {"tz": "Europe/Malta", "l": {"n": "Robert Abela", "b": 1977, "o": 2020, "t": "Bosh vazir"}},
+    "🇲🇭 Marshall orollari": {"tz": "Pacific/Majuro", "l": {"n": "Hilda Heine", "b": 1951, "o": 2024, "t": "Prezident"}},
+    "🇲🇷 Mavritaniya": {"tz": "Africa/Nouakchott", "l": {"n": "Mohamed Ould Ghazouani", "b": 1956, "o": 2019, "t": "Prezident"}},
+    "🇲🇺 Mavrikiy": {"tz": "Indian/Mauritius", "l": {"n": "Pravind Jugnauth", "b": 1961, "o": 2017, "t": "Bosh vazir"}},
+    "🇲🇽 Meksika": {"tz": "America/Mexico_City", "l": {"n": "Claudia Sheinbaum", "b": 1962, "o": 2024, "t": "Prezident"}},
+    "🇫🇲 Mikroneziya": {"tz": "Pacific/Chuuk", "l": {"n": "Wesley Simina", "b": 1961, "o": 2023, "t": "Prezident"}},
+    "🇲🇩 Moldova": {"tz": "Europe/Chisinau", "l": {"n": "Maia Sandu", "b": 1972, "o": 2020, "t": "Prezident"}},
+    "🇲🇨 Monako": {"tz": "Europe/Monaco", "l": {"n": "Albert II", "b": 1958, "o": 2005, "t": "Qirol"}},
+    "🇲🇳 Mongoliya": {"tz": "Asia/Ulaanbaatar", "l": {"n": "Luvsannamsrain Oyun-Erdene", "b": 1980, "o": 2021, "t": "Bosh vazir"}},
+    "🇲🇪 Chernogoriya": {"tz": "Europe/Podgorica", "l": {"n": "Milojko Spajić", "b": 1987, "o": 2023, "t": "Bosh vazir"}},
+    "🇲🇦 Marokash": {"tz": "Africa/Casablanca", "l": {"n": "Aziz Akhannouch", "b": 1961, "o": 2021, "t": "Bosh vazir"}},
+    "🇲🇿 Mozambik": {"tz": "Africa/Maputo", "l": {"n": "Filipe Nyusi", "b": 1958, "o": 2015, "t": "Prezident"}},
+    "🇲🇲 Myanma": {"tz": "Asia/Yangon", "l": {"n": "Min Aung Hlaing", "b": 1956, "o": 2021, "t": "Rahbar"}},
+    "🇳🇦 Namibiya": {"tz": "Africa/Windhoek", "l": {"n": "Nangolo Mbumba", "b": 1941, "o": 2024, "t": "Prezident"}},
+    "🇳🇷 Nauru": {"tz": "Pacific/Nauru", "l": {"n": "David Adeang", "b": 1969, "o": 2023, "t": "Prezident"}},
+    "🇳🇵 Nepal": {"tz": "Asia/Kathmandu", "l": {"n": "Pushpa Kamal Dahal", "b": 1954, "o": 2022, "t": "Bosh vazir"}},
+    "🇳🇱 Niderlandiya": {"tz": "Europe/Amsterdam", "l": {"n": "Dick Schoof", "b": 1957, "o": 2024, "t": "Bosh vazir"}},
+    "🇳🇿 Yangi Zelandiya": {"tz": "Pacific/Auckland", "l": {"n": "Christopher Luxon", "b": 1970, "o": 2023, "t": "Bosh vazir"}},
+    "🇳🇮 Nikaragua": {"tz": "America/Managua", "l": {"n": "Daniel Ortega", "b": 1945, "o": 2007, "t": "Prezident"}},
+    "🇳🇪 Niger": {"tz": "Africa/Niamey", "l": {"n": "Abdourahamane Tchiani", "b": 1960, "o": 2023, "t": "Prezident"}},
+    "🇳🇬 Nigeriya": {"tz": "Africa/Lagos", "l": {"n": "Bola Tinubu", "b": 1952, "o": 2023, "t": "Prezident"}},
+    "🇳🇴 Norvegiya": {"tz": "Europe/Oslo", "l": {"n": "Jonas Gahr Støre", "b": 1960, "o": 2021, "t": "Bosh vazir"}},
+    "🇴🇲 Ummon": {"tz": "Asia/Muscat", "l": {"n": "Haitham bin Tariq", "b": 1955, "o": 2020, "t": "Sulton"}},
+    "🇵🇰 Pakistan": {"tz": "Asia/Karachi", "l": {"n": "Shehbaz Sharif", "b": 1951, "o": 2024, "t": "Bosh vazir"}},
+    "🇵🇼 Palau": {"tz": "Pacific/Palau", "l": {"n": "Surangel Whipps Jr.", "b": 1968, "o": 2021, "t": "Prezident"}},
+    "🇵🇦 Panama": {"tz": "America/Panama", "l": {"n": "José Raúl Mulino", "b": 1956, "o": 2024, "t": "Prezident"}},
+    "🇵🇬 Papua – Yangi Gvineya": {"tz": "Pacific/Port_Moresby", "l": {"n": "James Marape", "b": 1971, "o": 2019, "t": "Bosh vazir"}},
+    "🇵🇾 Paragvay": {"tz": "America/Asuncion", "l": {"n": "Santiago Peña", "b": 1978, "o": 2023, "t": "Prezident"}},
+    "🇵🇪 Peru": {"tz": "America/Lima", "l": {"n": "Dina Boluarte", "b": 1962, "o": 2022, "t": "Prezident"}},
+    "🇵🇭 Filippin": {"tz": "Asia/Manila", "l": {"n": "Bongbong Marcos", "b": 1957, "o": 2022, "t": "Prezident"}},
+    "🇵🇱 Polsha": {"tz": "Europe/Warsaw", "l": {"n": "Donald Tusk", "b": 1957, "o": 2023, "t": "Bosh vazir"}},
+    "🇵🇹 Portugaliya": {"tz": "Europe/Lisbon", "l": {"n": "Luís Montenegro", "b": 1973, "o": 2024, "t": "Bosh vazir"}},
+    "🇶🇦 Qatar": {"tz": "Asia/Qatar", "l": {"n": "Shayx Tamim bin Hamad", "b": 1980, "o": 2013, "t": "Amir"}},
+    "🇷🇴 Ruminiya": {"tz": "Europe/Bucharest", "l": {"n": "Marcel Ciolacu", "b": 1967, "o": 2023, "t": "Bosh vazir"}},
+    "🇷🇺 Rossiya": {"tz": "Europe/Moscow", "l": {"n": "Vladimir Putin", "b": 1952, "o": 2012, "t": "Prezident"}},
+    "🇷🇼 Ruanda": {"tz": "Africa/Kigali", "l": {"n": "Paul Kagame", "b": 1957, "o": 2000, "t": "Prezident"}},
+    "🇰🇳 Sent-Kits va Nevis": {"tz": "America/St_Kitts", "l": {"n": "Terrance Drew", "b": 1976, "o": 2022, "t": "Bosh vazir"}},
+    "🇱🇨 Sent-Lyusiya": {"tz": "America/St_Lucia", "l": {"n": "Philip J. Pierre", "b": 1954, "o": 2021, "t": "Bosh vazir"}},
+    "🇻🇨 Sent-Vinsent va Grenadin": {"tz": "America/St_Vincent", "l": {"n": "Ralph Gonsalves", "b": 1946, "o": 2001, "t": "Bosh vazir"}},
+    "🇼🇸 Samoа": {"tz": "Pacific/Apia", "l": {"n": "Fiamē Naomi Mataʻafa", "b": 1957, "o": 2021, "t": "Bosh vazir"}},
+    "🇸🇲 San-Marino": {"tz": "Europe/San_Marino", "l": {"n": "Alessandro Scarano", "b": 1980, "o": 2024, "t": "Kapitan"}},
+    "🇸🇹 San-Tome va Prinsipi": {"tz": "Africa/Sao_Tome", "l": {"n": "Patrice Trovoada", "b": 1962, "o": 2022, "t": "Bosh vazir"}},
+    "🇸🇦 Saudiya Arabistoni": {"tz": "Asia/Riyadh", "l": {"n": "Salmon ibn Abdulaziz", "b": 1935, "o": 2015, "t": "Qirol"}},
+    "🇸🇳 Senegal": {"tz": "Africa/Dakar", "l": {"n": "Bassirou Diomaye Faye", "b": 1980, "o": 2024, "t": "Prezident"}},
+    "🇷🇸 Serbiya": {"tz": "Europe/Belgrade", "l": {"n": "Miloš Vučević", "b": 1975, "o": 2024, "t": "Bosh vazir"}},
+    "🇸🇨 Seyshel orollari": {"tz": "Indian/Mahe", "l": {"n": "Wavel Ramkalawan", "b": 1959, "o": 2020, "t": "Prezident"}},
+    "🇸🇱 Syerra-Leone": {"tz": "Africa/Freetown", "l": {"n": "Julius Maada Bio", "b": 1964, "o": 2018, "t": "Prezident"}},
+    "🇸🇬 Singapur": {"tz": "Asia/Singapore", "l": {"n": "Lawrence Wong", "b": 1972, "o": 2024, "t": "Bosh vazir"}},
+    "🇸🇰 Slovakiya": {"tz": "Europe/Bratislava", "l": {"n": "Robert Fico", "b": 1964, "o": 2023, "t": "Bosh vazir"}},
+    "🇸🇮 Sloveniya": {"tz": "Europe/Ljubljana", "l": {"n": "Robert Golob", "b": 1967, "o": 2022, "t": "Bosh vazir"}},
+    "🇸🇧 Solomon orollari": {"tz": "Pacific/Guadalcanal", "l": {"n": "Jeremiah Manele", "b": 1968, "o": 2024, "t": "Bosh vazir"}},
+    "🇸🇴 Somali": {"tz": "Africa/Mogadishu", "l": {"n": "Hassan Sheikh Mohamud", "b": 1955, "o": 2022, "t": "Prezident"}},
+    "🇿🇦 Janubiy Afrika": {"tz": "Africa/Johannesburg", "l": {"n": "Cyril Ramaphosa", "b": 1952, "o": 2018, "t": "Prezident"}},
+    "🇸🇸 Janubiy Sudan": {"tz": "Africa/Juba", "l": {"n": "Salva Kiir", "b": 1951, "o": 2011, "t": "Prezident"}},
+    "🇪🇸 Ispaniya": {"tz": "Europe/Madrid", "l": {"n": "Pedro Sánchez", "b": 1972, "o": 2018, "t": "Bosh vazir"}},
+    "🇱🇰 Shri-Lanka": {"tz": "Asia/Colombo", "l": {"n": "Ranil Wickremesinghe", "b": 1949, "o": 2022, "t": "Prezident"}},
+    "🇸🇩 Sudan": {"tz": "Africa/Khartoum", "l": {"n": "Abdel Fattah al-Burhan", "b": 1964, "o": 2019, "t": "Rahbar"}},
+    "🇸🇷 Surinam": {"tz": "America/Paramaribo", "l": {"n": "Chan Santokhi", "b": 1959, "o": 2020, "t": "Prezident"}},
+    "🇸🇪 Shvetsiya": {"tz": "Europe/Stockholm", "l": {"n": "Ulf Kristersson", "b": 1963, "o": 2022, "t": "Bosh vazir"}},
+    "🇨🇭 Shveytsariya": {"tz": "Europe/Zurich", "l": {"n": "Viola Amherd", "b": 1962, "o": 2024, "t": "Prezident"}},
+    "🇸🇾 Siriya": {"tz": "Asia/Damascus", "l": {"n": "Bashar al-Assad", "b": 1965, "o": 2000, "t": "Prezident"}},
+    "🇹🇯 Tojikiston": {"tz": "Asia/Dushanbe", "l": {"n": "Emomali Rahmon", "b": 1952, "o": 1994, "t": "Prezident"}},
+    "🇹🇿 Tanzaniya": {"tz": "Africa/Dar_es_Salaam", "l": {"n": "Samia Suluhu Hassan", "b": 1960, "o": 2021, "t": "Prezident"}},
+    "🇹🇭 Tailand": {"tz": "Asia/Bangkok", "l": {"n": "Paetongtarn Shinawatra", "b": 1986, "o": 2024, "t": "Bosh vazir"}},
+    "🇹🇬 Togo": {"tz": "Africa/Lome", "l": {"n": "Victoire Tomegah Dogbé", "b": 1967, "o": 2020, "t": "Bosh vazir"}},
+    "🇹🇴 Tonga": {"tz": "Pacific/Tongatapu", "l": {"n": "Siaosi Sovaleni", "b": 1965, "o": 2021, "t": "Bosh vazir"}},
+    "🇹🇹 Trinidad va Tobago": {"tz": "America/Port_of_Spain", "l": {"n": "Keith Rowley", "b": 1949, "o": 2015, "t": "Bosh vazir"}},
+    "🇹🇳 Tunisia": {"tz": "Africa/Tunis", "l": {"n": "Kaïs Saïed", "b": 1958, "o": 2019, "t": "Prezident"}},
+    "🇹🇷 Turkiya": {"tz": "Europe/Istanbul", "l": {"n": "Recep Tayyip Erdoğan", "b": 1954, "o": 2014, "t": "Prezident"}},
+    "🇹🇲 Turkmaniston": {"tz": "Asia/Ashgabat", "l": {"n": "Serdar Berdimuhamedow", "b": 1981, "o": 2022, "t": "Prezident"}},
+    "🇹🇻 Tuvalu": {"tz": "Pacific/Funafuti", "l": {"n": "Feleti Teo", "b": 1962, "o": 2024, "t": "Bosh vazir"}},
+    "🇺🇬 Uganda": {"tz": "Africa/Kampala", "l": {"n": "Yoweri Museveni", "b": 1944, "o": 1986, "t": "Prezident"}},
+    "🇺🇦 Ukraina": {"tz": "Europe/Kiev", "l": {"n": "Volodymyr Zelenskyy", "b": 1978, "o": 2019, "t": "Prezident"}},
+    "🇦🇪 Birlashgan Arab Amirliklari": {"tz": "Asia/Dubai", "l": {"n": "Mohammed bin Zayed", "b": 1961, "o": 2022, "t": "Prezident"}},
+    "🇬🇧 Birlashgan Qirollik": {"tz": "Europe/London", "l": {"n": "Keir Starmer", "b": 1962, "o": 2024, "t": "Bosh vazir"}},
+    "🇺🇸 AQSH": {"tz": "America/New_York", "l": {"n": "Joe Biden", "b": 1942, "o": 2021, "t": "Prezident"}},
+    "🇺🇾 Urugvay": {"tz": "America/Montevideo", "l": {"n": "Luis Lacalle Pou", "b": 1973, "o": 2020, "t": "Prezident"}},
+    "🇺🇿 Oʻzbekiston": {"tz": "Asia/Tashkent", "l": {"n": "Shavkat Mirziyoyev", "b": 1957, "o": 2016, "t": "Prezident"}},
+    "🇻🇺 Vanuatu": {"tz": "Pacific/Efate", "l": {"n": "Jotham Napat", "b": 1975, "o": 2023, "t": "Bosh vazir"}},
+    "🇻🇦 Vatikan": {"tz": "Europe/Vatican", "l": {"n": "Papa Fransisk", "b": 1936, "o": 2013, "t": "Papa"}},
+    "🇻🇪 Venesuela": {"tz": "America/Caracas", "l": {"n": "Nicolás Maduro", "b": 1962, "o": 2013, "t": "Prezident"}},
+    "🇻🇳 Vetnam": {"tz": "Asia/Ho_Chi_Minh", "l": {"n": "Phạm Minh Chính", "b": 1958, "o": 2021, "t": "Bosh vazir"}},
+    "🇾🇪 Ye'men": {"tz": "Asia/Aden", "l": {"n": "Rashad al-Alimi", "b": 1954, "o": 2022, "t": "Prezident"}},
+    "🇿🇲 Zambiya": {"tz": "Africa/Lusaka", "l": {"n": "Hakainde Hichilema", "b": 1962, "o": 2021, "t": "Prezident"}},
+    "🇿🇼 Zimbabwe": {"tz": "Africa/Harare", "l": {"n": "Emmerson Mnangagwa", "b": 1942, "o": 2017, "t": "Prezident"}}
 }
 
-WEEKDAYS_UZ = {
-    "Monday": "Dushanba",
-    "Tuesday": "Seshanba",
-    "Wednesday": "Chorshanba",
-    "Thursday": "Payshanba",
-    "Friday": "Juma",
-    "Saturday": "Shanba",
-    "Sunday": "Yakshanba",
-}
+# ✅ Ma'lumotlar qisqartirilgan:
+# - "tz" = timezone
+# - "l" = leader
+# - "n" = name
+# - "b" = birth_year
+# - "o" = took_office
+# - "t" = title
 
-def format_date_uz(date_str):
-    if not date_str:
-        return "Noma'lum"
-    try:
-        d = datetime.strptime(date_str, "%Y-%m-%d")
-        months_uz = ["", "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-                     "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"]
-        return f"{d.day}-{months_uz[d.month]} {d.year} yil"
-    except Exception:
-        return "Noma'lum"
-
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-
-ITEMS_PER_PAGE = 10
-
-def build_country_keyboard(page: int = 0):
-    start = page * ITEMS_PER_PAGE
-    end = start + ITEMS_PER_PAGE
-    page_countries = COUNTRIES[start:end]
-
-    keyboard = []
-    for name, code in page_countries:
-        keyboard.append([InlineKeyboardButton(name, callback_data=f"country:{code}")])
-
-    nav_row = []
-    if page > 0:
-        nav_row.append(InlineKeyboardButton("⬅️ Oldingi", callback_data=f"page:{page-1}"))
-    if end < len(COUNTRIES):
-        nav_row.append(InlineKeyboardButton("Keyingi ➡️", callback_data=f"page:{page+1}"))
-    if nav_row:
-        keyboard.append(nav_row)
-
-    return InlineKeyboardMarkup(keyboard)
-
+# 🚀 /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_markup = build_country_keyboard(page=0)
-    await update.message.reply_text("🌍 Davlatlardan birini tanlang (sahifalangan):", reply_markup=reply_markup)
+    buttons = []
+    for name in sorted(COUNTRIES.keys()):
+        buttons.append([InlineKeyboardButton(name, callback_data=name)])
+    # Telegram inline tugmalar cheklovi — 100 ta guruhga bo'lish kerak
+    # 195 ta bo'lgani uchun, 100 tagina qo'yamiz (qolganini keyin qo'shsa bo'ladi)
+    if len(buttons) > 100:
+        buttons = buttons[:100]
+    reply_markup = InlineKeyboardMarkup(buttons)
+    await update.message.reply_text("🌏 Dunyoning davlatlarini tanlang (100 ta):", reply_markup=reply_markup)
 
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# 🔘 Tugma bosilganda
+async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    name = query.data
+    c = COUNTRIES.get(name)
+    if not c:
+        await query.edit_message_text("❌ Ma'lumot topilmadi.")
+        return
 
-    data = query.data
+    try:
+        tz = pytz.timezone(c["tz"])
+        now = datetime.now(tz)
+    except:
+        now = datetime.now(pytz.utc)
 
-    if data.startswith("page:"):
-        page = int(data.split(":")[1])
-        reply_markup = build_country_keyboard(page=page)
-        await query.edit_message_text("🌍 Davlatlardan birini tanlang (sahifalangan):", reply_markup=reply_markup)
+    date_str = now.strftime("%Y-%m-%d")
+    time_str = now.strftime("%H:%M:%S")
+    weekday = now.strftime("%A")
 
-    elif data.startswith("country:"):
-        country_code = data.split(":")[1]
-        country_info = next((item for item in COUNTRIES if item[1] == country_code), None)
-        if not country_info:
-            await query.edit_message_text("❌ Noma'lum davlat.")
-            return
+    weekdays_uz = {
+        "Monday": "Dushanba", "Tuesday": "Seshanba", "Wednesday": "Chorshanba",
+        "Thursday": "Payshanba", "Friday": "Juma", "Saturday": "Shanba", "Sunday": "Yakshanba"
+    }
+    weekday_uz = weekdays_uz.get(weekday, weekday)
 
-        flag_name = country_info[0]
-        now = datetime.now(timezone.utc)
-        time_str = now.strftime("%H:%M:%S")
-        date_str = now.strftime("%Y-%m-%d")
-        weekday_uz = WEEKDAYS_UZ.get(now.strftime("%A"), now.strftime("%A"))
+    leader = c["l"]
+    current_year = datetime.now().year
+    age = current_year - leader["b"]
 
-        # Bayramni xavfsiz aniqlash
-        holiday_text = "⚠️ Bayram ma'lumotlari mavjud emas"
-        try:
-            # holidays kutubxonasida mavjud bo'lsa
-            if country_code in holidays.list_supported_countries():
-                # Kosovo (XK) kabi kodlar uchun
-                if country_code == "XK":
-                    holiday_text = "⚠️ Kosovo uchun bayram ma'lumotlari mavjud emas"
-                else:
-                    country_holidays = holidays.country_holidays(country_code)
-                    today_holidays = country_holidays.get(now.date())
-                    holiday_text = f"🎉 Bayram: {today_holidays}" if today_holidays else "❌ Bugun bayram yo'q"
-        except Exception as e:
-            holiday_text = "⚠️ Bayram ma'lumotlarini olishda xatolik"
+    msg = (
+        f"📅 **Sana**: {date_str}\n"
+        f"⏰ **Vaqt**: {time_str}\n"
+        f"📆 **Kun**: {weekday_uz}\n\n"
+        f"**{leader['t']}**: {leader['n']}\n"
+        f"**Yoshi**: {age}\n"
+        f"**Tug'ilgan yili**: {leader['b']}\n"
+        f"**Lavozimga kirgan yili**: {leader['o']}"
+    )
+    await query.edit_message_text(msg, parse_mode="Markdown")
 
-        # Prezident
-        prezident_info = PRESIDENTS.get(country_code, ("❌ Ma'lumot yo'q", None))
-        prez_name, prez_since = prezident_info
-        if prez_since:
-            since_text = format_date_uz(prez_since)
-            prez_text = f"👤 Bosh rahbar: {prez_name}\n📅 Lavozimga kirgan: {since_text}"
-        else:
-            prez_text = f"👤 Bosh rahbar: {prez_name}"
-
-        message = (
-            f"{flag_name}\n\n"
-            f"🕗 Soat (UTC): {time_str}\n"
-            f"📅 Sana: {date_str}\n"
-            f"📆 Kun: {weekday_uz}\n"
-            f"{holiday_text}\n\n"
-            f"{prez_text}"
-        )
-        await query.edit_message_text(message, parse_mode=None)
-
+# ▶️ Ishga tushirish
 def main():
-    if BOT_TOKEN == "8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo":
-        # 👆 Agar siz hali token o'zgartirmagan bo'lsangiz, xabar berish
-        raise ValueError("❗ Iltimos, BOT_TOKEN o'zgaruvchisiga o'zingizning haqiqiy bot tokeningizni qo'ying!")
-
+    logging.basicConfig(level=logging.INFO)
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
-
-    print("✅ Bot ishga tushdi! Telegramda /start yozing.")
+    app.add_handler(CallbackQueryHandler(button_click))
+    print("✅ Bot ishga tushdi! (195 ta davlatdan 100 tasi ko'rsatiladi)")
     app.run_polling()
 
 if __name__ == "__main__":
