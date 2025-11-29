@@ -10,7 +10,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 BOT_TOKEN = "8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo"
 
 # ========================
-# 🌍 195 TA DAVLAT (Barcha BMT a'zolari + Vatikan + Falastin)
+# 🌍 195+ DAVLAT (Barcha BMT a'zolari + Vatikan + Falastin)
 # ========================
 COUNTRIES = [
     ("🇦🇫 Afghanistan", "AF"),
@@ -54,7 +54,7 @@ COUNTRIES = [
     ("🇨🇬 Congo", "CG"),
     ("🇨🇩 DR Congo", "CD"),
     ("🇨🇷 Costa Rica", "CR"),
-    ("🇨🇮 Côte d’Ivoire", "CI"),
+    ("🇨🇮 Côte d’Ivoir", "CI"),
     ("🇭🇷 Croatia", "HR"),
     ("🇨🇺 Cuba", "CU"),
     ("🇨🇾 Cyprus", "CY"),
@@ -211,8 +211,7 @@ COUNTRIES = [
     ("🇿🇼 Zimbabwe", "ZW"),
 ]
 
-# 🗳️ Prezidentlar (2025-yil noyabr holatiga ko'ra)
-# Format: "KOD": ("Ism Familiya", "YYYY-MM-DD")
+# 🗳️ Prezidentlar (2025-yil noyabr holatiga)
 PRESIDENTS = {
     "US": ("Joe Biden", "2021-01-20"),
     "UZ": ("Shavkat Mirziyoyev", "2016-12-14"),
@@ -220,11 +219,11 @@ PRESIDENTS = {
     "CN": ("Xi Jinping", "2013-03-15"),
     "FR": ("Emmanuel Macron", "2017-05-14"),
     "DE": ("Frank-Walter Steinmeier", "2017-03-19"),
-    "GB": ("Charles III", "2022-09-08"),  # Qirol — bosh rahbar
+    "GB": ("Charles III", "2022-09-08"),
     "IN": ("Droupadi Murmu", "2022-07-25"),
     "BR": ("Luiz Inácio Lula da Silva", "2023-01-01"),
-    "JP": ("Fumio Kishida", "2021-10-04"),  # Bosh vazir — amaldagi rahbar
-    "CA": ("Julie Payette", "2017-10-02"),  # Gubernator — nominal rahbar (2025da yangilangan versiya kerak bo'lishi mumkin)
+    "JP": ("Fumio Kishida", "2021-10-04"),
+    "CA": ("Mary Simon", "2021-07-26"),
     "AU": ("David Hurley", "2019-07-01"),
     "TR": ("Recep Tayyip Erdoğan", "2014-08-28"),
     "SA": ("Salman bin Abdulaziz", "2015-01-23"),
@@ -239,26 +238,24 @@ PRESIDENTS = {
     "ID": ("Joko Widodo", "2014-10-20"),
     "KR": ("Yoon Suk-yeol", "2022-05-10"),
     "IT": ("Sergio Mattarella", "2015-02-03"),
-    "ES": ("Pedro Sánchez", "2018-06-02"),  # Bosh vazir
+    "ES": ("Pedro Sánchez", "2018-06-02"),
     "UA": ("Volodymyr Zelenskyy", "2019-05-20"),
     "BY": ("Alexander Lukashenko", "1994-07-20"),
     "KZ": ("Kassym-Jomart Tokayev", "2019-03-20"),
-    "MM": ("Min Aung Hlaing", "2021-08-01"),  # Harbiy hukmdor
+    "MM": ("Min Aung Hlaing", "2021-08-01"),
     "VN": ("To Lam", "2024-10-21"),
-    "TH": ("Srettha Thavisin", "2023-08-22"),  # Bosh vazir
+    "TH": ("Srettha Thavisin", "2023-08-22"),
     "PH": ("Bongbong Marcos", "2022-06-30"),
-    "MY": ("Sultan Ibrahim Iskandar", "2024-01-31"),  # Qirol
+    "MY": ("Sultan Ibrahim Iskandar", "2024-01-31"),
     "SG": ("Tharman Shanmugaratnam", "2023-09-14"),
     "NZ": ("Cindy Kiro", "2021-10-21"),
-    "SE": ("Ulf Kristersson", "2022-10-18"),  # Bosh vazir
-    "NO": ("Jonas Gahr Støre", "2021-10-14"),  # Bosh vazir
-    "CH": ("Viola Amherd", "2024-01-01"),  # Prezident (davriy)
+    "SE": ("Ulf Kristersson", "2022-10-18"),
+    "NO": ("Jonas Gahr Støre", "2021-10-14"),
+    "CH": ("Viola Amherd", "2024-01-01"),
     "PS": ("Mahmoud Abbas", "2005-01-15"),
     "VA": ("Pope Francis", "2013-03-13"),
-    # Ko'proq davlatlarni qo'shish mumkin — hozircha eng mashhurlari
 }
 
-# Hafta kunlari (ingliz → o'zbek)
 WEEKDAYS_UZ = {
     "Monday": "Dushanba",
     "Tuesday": "Seshanba",
@@ -269,103 +266,104 @@ WEEKDAYS_UZ = {
     "Sunday": "Yakshanba",
 }
 
-# Sana formatlash uchun yordamchi funksiya
 def format_date_uz(date_str):
     if not date_str:
         return "Noma'lum"
     try:
         d = datetime.strptime(date_str, "%Y-%m-%d")
-        months_uz = [
-            "", "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-            "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"
-        ]
+        months_uz = ["", "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+                     "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"]
         return f"{d.day}-{months_uz[d.month]} {d.year} yil"
     except:
         return date_str
 
-# Logging
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
-# /start handler
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+ITEMS_PER_PAGE = 10
+
+def build_country_keyboard(page: int = 0):
+    start = page * ITEMS_PER_PAGE
+    end = start + ITEMS_PER_PAGE
+    page_countries = COUNTRIES[start:end]
+
     keyboard = []
-    row = []
-    for i, (name, code) in enumerate(COUNTRIES):
-        row.append(InlineKeyboardButton(name, callback_data=code))
-        if (i + 1) % 2 == 0:
-            keyboard.append(row)
-            row = []
-    if row:
-        keyboard.append(row)
+    for name, code in page_countries:
+        keyboard.append([InlineKeyboardButton(name, callback_data=f"country:{code}")])
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("🌍 Dunyodagi barcha davlatlardan birini tanlang:", reply_markup=reply_markup)
+    # Pagination tugmalar
+    nav_row = []
+    if page > 0:
+        nav_row.append(InlineKeyboardButton("⬅️ Oldingi", callback_data=f"page:{page-1}"))
+    if end < len(COUNTRIES):
+        nav_row.append(InlineKeyboardButton("Keyingi ➡️", callback_data=f"page:{page+1}"))
+    if nav_row:
+        keyboard.append(nav_row)
 
-# Tugma bosilganda
+    return InlineKeyboardMarkup(keyboard)
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    reply_markup = build_country_keyboard(page=0)
+    await update.message.reply_text("🌍 Davlatlardan birini tanlang (sahifalangan):", reply_markup=reply_markup)
+
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    country_code = query.data
-    country_info = next((item for item in COUNTRIES if item[1] == country_code), None)
-    if not country_info:
-        await query.edit_message_text("❌ Noma'lum davlat.")
-        return
+    data = query.data
 
-    flag_name = country_info[0]  # "🇺🇿 Uzbekistan"
-    country_display = flag_name
+    if data.startswith("page:"):
+        page = int(data.split(":")[1])
+        reply_markup = build_country_keyboard(page=page)
+        await query.edit_message_text("🌍 Davlatlardan birini tanlang:", reply_markup=reply_markup)
 
-    # Hozirgi UTC vaqt
-    now = datetime.now(timezone.utc)
-    time_str = now.strftime("%H:%M:%S")
-    date_str = now.strftime("%Y-%m-%d")
-    weekday_en = now.strftime("%A")
-    weekday_uz = WEEKDAYS_UZ.get(weekday_en, weekday_en)
+    elif data.startswith("country:"):
+        country_code = data.split(":")[1]
+        country_info = next((item for item in COUNTRIES if item[1] == country_code), None)
+        if not country_info:
+            await query.edit_message_text("❌ Noma'lum davlat.")
+            return
 
-    # Bayramlarni tekshirish
-    try:
-        if country_code in holidays.list_supported_countries():
-            country_holidays = holidays.country_holidays(country_code)
-            today_holidays = country_holidays.get(now.date())
-            if today_holidays:
-                holiday_text = f"🎉 Bayram: {today_holidays}"
+        flag_name = country_info[0]
+        now = datetime.now(timezone.utc)
+        time_str = now.strftime("%H:%M:%S")
+        date_str = now.strftime("%Y-%m-%d")
+        weekday_uz = WEEKDAYS_UZ.get(now.strftime("%A"), now.strftime("%A"))
+
+        # Bayram
+        try:
+            if country_code in holidays.list_supported_countries():
+                country_holidays = holidays.country_holidays(country_code)
+                today_holidays = country_holidays.get(now.date())
+                holiday_text = f"🎉 Bayram: {today_holidays}" if today_holidays else "❌ Bugun bayram yo'q"
             else:
-                holiday_text = "❌ Bugun bayram yo'q"
+                holiday_text = "⚠️ Bayram ma'lumotlari mavjud emas"
+        except:
+            holiday_text = "⚠️ Bayram ma'lumotlari olishda xatolik"
+
+        # Prezident
+        prezident_info = PRESIDENTS.get(country_code, ("❌ Ma'lumot yo'q", None))
+        prez_name, prez_since = prezident_info
+        if prez_since:
+            since_text = format_date_uz(prez_since)
+            prez_text = f"👤 Bosh rahbar: {prez_name}\n📅 Lavozimga kirgan: {since_text}"
         else:
-            holiday_text = "⚠️ Bayram ma'lumotlari mavjud emas"
-    except Exception:
-        holiday_text = "⚠️ Bayram ma'lumotlari olishda xatolik"
+            prez_text = f"👤 Bosh rahbar: {prez_name}"
 
-    # Prezident ma'lumotlari
-    prezident_info = PRESIDENTS.get(country_code, ("❌ Ma'lumot yo'q", None))
-    prezident_name, prezident_since = prezident_info
-    if prezident_since:
-        since_formatted = format_date_uz(prezident_since)
-        prez_text = f"👤 Prezident: {prezident_name}\n📅 Lavozimga kirgan: {since_formatted}"
-    else:
-        prez_text = f"👤 Bosh rahbar: {prezident_name}"
+        message = (
+            f"{flag_name}\n\n"
+            f"🕗 Soat (UTC): {time_str}\n"
+            f"📅 Sana: {date_str}\n"
+            f"📆 Kun: {weekday_uz}\n"
+            f"{holiday_text}\n\n"
+            f"{prez_text}"
+        )
+        await query.edit_message_text(message)
 
-    # Xabar tayyorlash
-    message = (
-        f"{country_display}\n\n"
-        f"🕗 Soat (UTC): {time_str}\n"
-        f"📅 Sana: {date_str}\n"
-        f"📆 Kun: {weekday_uz}\n"
-        f"{holiday_text}\n\n"
-        f"{prez_text}"
-    )
-
-    await query.edit_message_text(message)
-
-# Asosiy funksiya
 def main():
     if BOT_TOKEN == "BU_YERGA_OZINGIZNING_BOT_TOKENINGIZNI_QO'YING":
         raise ValueError("❗ Iltimos, BOT_TOKEN o'zgaruvchisiga o'zingizning bot tokeningizni qo'ying!")
 
     app = Application.builder().token(BOT_TOKEN).build()
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
 
