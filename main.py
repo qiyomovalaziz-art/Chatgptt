@@ -5,7 +5,7 @@ import pytz
 from datetime import datetime
 
 # 🔑 BOT TOKENINGIZNI SHU YERGA QO'YING
-BOT_TOKEN = "BU_YERGA_TOKENINGIZNI_QO'YING"
+BOT_TOKEN = "8496446032:AAF6Yxv7dnrp_qMDXegWVddgrvMQKK3q2uo"
 
 # 🌍 Barcha 195 ta davlat (UN a'zolari + kuzatuvchi davlatlar) — to'liq ma'lumotlar
 COUNTRIES = {
