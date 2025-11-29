@@ -13,8 +13,6 @@ def start(update, context):
     keyboard = [
         [InlineKeyboardButton("📅 Bugungi sana", callback_data="sana")],
         [InlineKeyboardButton("⏰ Hozirgi soat", callback_data="soat")],
-        [InlineKeyboardButton("🖼 Rasm yubor", callback_data="rasm_0")],
-        [InlineKeyboardButton("🎥 Video yubor", callback_data="video")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text("Assalomu alaykum! Tugmalardan birini tanlang:", reply_markup=reply_markup)
