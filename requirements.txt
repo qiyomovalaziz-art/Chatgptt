@@ -1,2 +1,3 @@
 python-telegram-bot==20.7
-holidays==0.50
+holidays==0.57
+python-dotenv   # ixtiyoriy, lekin tavsiya etiladi
